@@ -4,7 +4,7 @@ const io = require('socket.io')();
 async function handleConnection(client) {
   try {
     const state = await tracker.getCurrentState();
-    client.emit('updateAll', state);
+    client.emit('update', state);
   } catch (error) {
     client.emit('error');
     return;
@@ -26,10 +26,12 @@ async function main() {
 
   trackerEvents.on('error', (message) => console.error(message));
   trackerEvents.on('block', (height) => io.sockets.emit(
-    'block', { blockNumber: height }));
+    'update', { blockNumber: height }));
   trackerEvents.on('purchase', (message) => console.log(message));
   trackerEvents.on('update', (total) => io.sockets.emit(
-    'updateTotal', { totalReceived: total }));
+    'update', { totalReceived: total }));
+  trackerEvents.on(
+    'rate', (rate) => io.sockets.emit('update', { exchangeRate: rate }));
 }
 
 main();

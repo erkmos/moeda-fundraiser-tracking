@@ -4,6 +4,7 @@ const _ = require('lodash');
 const redis = require('redis');
 const bluebird = require('bluebird');
 const EventEmitter = require('events');
+const ExchangeRate = require('./exchangeRate');
 
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
@@ -195,6 +196,15 @@ async function Tracker(address, topic) {
   connection.on('message', (data) => handleData(JSON.parse(data.utf8Data)));
   subscribe(connection);
 
+  const rater = new ExchangeRate();
+
+  // update manually the first time since there is a delay
+  const rate = await rater.getRate();
+  await updateExchangeRate(rate);
+
+  rater.start();
+  rater.on('data', updateExchangeRate);
+
   return events;
 }
 
@@ -225,6 +235,11 @@ async function getBalance(address) {
   } catch (error) {
     return 'error';
   }
+}
+
+async function updateExchangeRate(rate) {
+  await redisClient.setAsync('exchangeRate', rate);
+  events.emit('rate', rate);
 }
 
 module.exports = {
