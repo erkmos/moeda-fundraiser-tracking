@@ -76,6 +76,7 @@ async function updateBlock(number) {
 
 async function addPurchase(purchase) {
   await updateBalance(purchase);
+  await incTotalReceived(purchase.ethAmount);
 }
 
 function handleSubscription(data) {
@@ -87,7 +88,13 @@ function handleSubscription(data) {
     const purchase = decodeLogEntry(data.result);
     addPurchase(purchase);
     events.emit('purchase', formatPurchase(purchase));
+    sendFundraiserUpdate();
   }
+}
+
+async function sendFundraiserUpdate() {
+  const totalReceived = await redisClient.getAsync('totalReceived');
+  events.emit('update', totalReceived);
 }
 
 function handleData(logEntry) {
@@ -102,7 +109,7 @@ function handleData(logEntry) {
 
 async function getLogsSince(fromBlock) {
   const watcher = web3.eth.filter({
-    fromBlock,
+    fromBlock: fromBlock || 0,
     toBlock: 'latest',
     address: contractAddress,
     topics: [
@@ -128,7 +135,7 @@ async function updateBalance(data) {
   if (balance === null) {
     balance = 0;
   }
-  const newBalance = web3.toBigNumber(balance).add(data.tokenAmount);
+  const newBalance = web3.toBigNumber(balance).plus(data.tokenAmount);
   await redisClient.hsetAsync(
     'balances', data.address, newBalance.toString(10));
 }
@@ -137,10 +144,10 @@ async function fastForward() {
   const lastBlockNumber = await redisClient.getAsync('currentBlock');
 
   const purchases = await getPurchasesSince(lastBlockNumber);
-  const newTotalReceived = _.reduce(purchases, (acc, purchase) => {
-    acc.add(purchase.ethAmount);
-    return acc;
-  }, web3.toBigNumber(0));
+  const newTotalReceived = _.reduce(
+    purchases,
+    (acc, purchase) => acc.plus(purchase.ethAmount),
+    web3.toBigNumber(0));
 
   await incTotalReceived(newTotalReceived);
 
@@ -150,8 +157,8 @@ async function fastForward() {
 }
 
 async function incTotalReceived(amount) {
-  const totalReceived = await redisClient.getAsync('totalReceived') || 0;
-  const newTotal = web3.toBigNumber(amount).add(totalReceived);
+  const totalReceived = await redisClient.getAsync('totalReceived');
+  const newTotal = web3.toBigNumber(amount).plus(totalReceived || 0);
   await redisClient.setAsync(
     'totalReceived', newTotal.toString('10'));
 }
@@ -160,6 +167,7 @@ async function getPurchasesSince(blockNumber) {
   const logs = await getLogsSince(blockNumber);
   const purchases = logs.map(decodeLogEntry);
   await bluebird.each(purchases, updateBalance);
+  return purchases;
 }
 
 async function Tracker(address, topic) {
@@ -190,6 +198,37 @@ async function Tracker(address, topic) {
   return events;
 }
 
+async function getCurrentState() {
+  const [
+    totalReceived, currentBlock, exchangeRate,
+  ] = await redisClient.mgetAsync(
+    'totalReceived', 'currentBlock', 'exchangeRate');
+
+  return { totalReceived, currentBlock, exchangeRate };
+}
+
+function isInvalidAddress(address) {
+  return typeof address !== 'string' || address === null ||
+    address === '' ||
+    (address.length % 2) !== 0 ||
+    address.slice(0, 2) !== '0x' || address.length !== 42;
+}
+
+async function getBalance(address) {
+  if (isInvalidAddress(address)) {
+    return undefined;
+  }
+
+  try {
+    const balance = await redisClient.hgetAsync('balances', address);
+    return web3.toBigNumber(balance || 0).toString('10');
+  } catch (error) {
+    return 'error';
+  }
+}
+
 module.exports = {
   start: Tracker,
+  getCurrentState,
+  getBalance,
 };
