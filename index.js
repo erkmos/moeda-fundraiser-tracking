@@ -36,6 +36,13 @@ function subscribe(conn) {
   conn.send(rpcSubscribe(['newHeads', { includeTransactions: false }]));
 }
 
+function formatPurchase({ ethAmount, tokenAmount, address }) {
+  const humanEth = web3.fromWei(ethAmount).toString('10');
+  const humanToken = web3.fromWei(tokenAmount).toString('10');
+
+  return `New donation: ${address} got ${humanToken} MDA for ${humanEth} ETH`;
+}
+
 function decodeLogEntry(logEntry) {
   const [ethAmount, tokenAmount] = [
     web3.toBigNumber(logEntry.data.slice(0, 66)),
@@ -77,7 +84,7 @@ function handleSubscription(data) {
     updateBlock(blockNumber);
   } else if (isLog(data)) {
     const purchase = decodeLogEntry(data.result);
-    console.log('New purchase', purchase);
+    console.log(formatPurchase(purchase));
     addPurchase(purchase);
   } else {
     console.log(data.result);
