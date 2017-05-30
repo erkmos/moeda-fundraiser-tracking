@@ -5,33 +5,35 @@ const _ = require('lodash');
 
 const web3 = new Web3();
 
+function rpcRequest(method, params) {
+  return JSON.stringify({
+    jsonrpc: '2.0',
+    id: 1,
+    method,
+    params,
+  });
+}
+
+function rpcSubscribe(params) {
+  return rpcRequest('eth_subscribe', params);
+}
+
 function subscribe(conn) {
-  conn.send(JSON.stringify({
-    jsonrpc: '2.0',
-    id: 1,
-    method: 'eth_subscribe',
-    params: [
-      'logs',
-      {
-        address: '0x38980ccb7b83b1ab9bf15d2979e784f9f7f0461a',
-        topics: [
-          '0x12cb4648cf3058b17ceeb33e579f8b0bc269fe0843f3900b8e24b6c54871703c',
-        ],
-      },
-    ],
-  }));
-  conn.send(JSON.stringify({
-    jsonrpc: '2.0',
-    id: 1,
-    method: 'eth_getBalance',
-    params: ['0x98a321f414d67f186e30bdac641e5ecf990397ae', 'latest'],
-  }));
-  conn.send(JSON.stringify({
-    jsonrpc: '2.0',
-    id: 2,
-    method: 'eth_subscribe',
-    params: ['newHeads', { includeTransactions: false }],
-  }));
+  conn.send(rpcSubscribe([
+    'logs',
+    {
+      address: '0x38980ccb7b83b1ab9bf15d2979e784f9f7f0461a',
+      topics: [
+        '0x12cb4648cf3058b17ceeb33e579f8b0bc269fe0843f3900b8e24b6c54871703c',
+      ],
+    },
+  ]));
+
+  conn.send(rpcRequest(
+    'eth_getBalance',
+    ['0x98a321f414d67f186e30bdac641e5ecf990397ae', 'latest']));
+
+  conn.send(rpcSubscribe(['newHeads', { includeTransactions: false }]));
 }
 
 function decodeLogEntry(logEntry) {
