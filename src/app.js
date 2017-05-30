@@ -16,10 +16,8 @@ async function handleConnection(client) {
   });
 }
 
-async function main() {
-  const trackerEvents = await tracker.start(
-    '0x38980ccb7b83b1ab9bf15d2979e784f9f7f0461a',
-    '0x12cb4648cf3058b17ceeb33e579f8b0bc269fe0843f3900b8e24b6c54871703c');
+async function run(contractAddress, topic) {
+  const trackerEvents = await tracker.start(contractAddress, topic);
 
   io.on('connection', handleConnection);
   io.listen(3000, () => console.log('Listening on port 3000'));
@@ -34,4 +32,6 @@ async function main() {
     'rate', (rate) => io.sockets.emit('update', { exchangeRate: rate }));
 }
 
-main();
+module.exports = {
+  run,
+};
