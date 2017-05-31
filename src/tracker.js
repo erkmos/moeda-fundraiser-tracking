@@ -175,10 +175,21 @@ async function getPurchasesSince(blockNumber) {
   return purchases;
 }
 
-async function Tracker(address, topic) {
+function handleRedisError(error) {
+  logger.error(error.message);
+}
+
+async function Tracker({
+  redisHost, redisPort, gethHost, gethPort, address, topic,
+}) {
   contractAddress = address;
   contractEventHash = topic;
-  global.redisClient = redis.createClient();
+  global.redisClient = redis.createClient({ host: redisHost, port: redisPort });
+  global.redisClient.on('error', handleRedisError);
+
+  await new Promise((resolve) => {
+    global.redisClient.on('ready', resolve);
+  });
   events = new EventEmitter();
 
   try {
@@ -194,7 +205,7 @@ async function Tracker(address, topic) {
   const connection = await new Promise((resolve, reject) => {
     client.on('connect', (connection) => resolve(connection));
     client.on('connectFailed', (error) => reject(error));
-    client.connect('ws://127.0.0.1:8546');
+    client.connect(`ws://${gethHost}:${gethPort}`);
   });
 
   connection.on('message', (data) => handleData(JSON.parse(data.utf8Data)));

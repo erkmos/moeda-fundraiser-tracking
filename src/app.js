@@ -5,14 +5,20 @@ const logger = require('./logger');
 async function handleClientAction(client, action) {
   const result = { type: null };
 
-  switch (action.type) {
-    case 'server/balance':
-      result.data = await tracker.getBalance(action.data);
-      result.type = 'balance';
-      break;
-    default:
-      return;
+  try {
+    switch (action.type) {
+      case 'server/balance':
+        result.data = await tracker.getBalance(action.data);
+        result.type = 'BALANCE';
+        break;
+      default:
+        return;
+    }
+  } catch (error) {
+    result.type = 'BALANCE_ERROR';
+    result.data = 'request error';
   }
+
 
   client.emit('action', result);
 }
@@ -22,7 +28,7 @@ async function handleConnection(client) {
     const state = await tracker.getCurrentState();
     client.emit('update', state);
   } catch (error) {
-    client.emit('error');
+    client.emit('error', 'failed to get state');
     return;
   }
 
