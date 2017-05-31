@@ -6,6 +6,9 @@
   "repository": "https://github.com/erkmos/moeda-fundraiser-tracking",
   "author": "Erik Mossberg <lingonvecka@gmail.com>",
   "license": "MIT",
+  "scripts": {
+    "test": "jasmine"
+  },
   "dependencies": {
     "bluebird": "3.5.0",
     "lodash": "4.17.4",
@@ -21,6 +24,7 @@
     "eslint": "3.19.0",
     "eslint-config-airbnb-base": "11.2.0",
     "eslint-plugin-import": "2.3.0",
-    "jasmine": "2.6.0"
+    "jasmine": "2.6.0",
+    "jasmine-spec-reporter": "^4.1.0"
   }
 }
