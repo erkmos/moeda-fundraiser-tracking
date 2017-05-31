@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Track status of the Moeda fundraiser contract",
   "main": "index.js",
-  "repository": "git@github.com:erkmos/moeda-fundraiser-tracking.git",
+  "repository": "https://github.com/erkmos/moeda-fundraiser-tracking",
   "author": "Erik Mossberg <lingonvecka@gmail.com>",
   "license": "MIT",
   "dependencies": {
