@@ -1,5 +1,6 @@
 const tracker = require('./tracker');
 const io = require('socket.io')();
+const logger = require('./logger');
 
 async function handleConnection(client) {
   try {
@@ -20,12 +21,12 @@ async function run(contractAddress, topic) {
   const trackerEvents = await tracker.start(contractAddress, topic);
 
   io.on('connection', handleConnection);
-  io.listen(3000, () => console.log('Listening on port 3000'));
+  io.listen(3000, () => logger.info('Listening on port 3000'));
 
-  trackerEvents.on('error', (message) => console.error(message));
+  trackerEvents.on('error', (message) => logger.error(message));
   trackerEvents.on('block', (height) => io.sockets.emit(
     'update', { blockNumber: height }));
-  trackerEvents.on('purchase', (message) => console.log(message));
+  trackerEvents.on('purchase', (message) => logger.info(message));
   trackerEvents.on('update', (total) => io.sockets.emit(
     'update', { totalReceived: total }));
   trackerEvents.on(

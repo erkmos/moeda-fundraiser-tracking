@@ -5,11 +5,15 @@ const redis = require('redis');
 const bluebird = require('bluebird');
 const EventEmitter = require('events');
 const ExchangeRate = require('./exchangeRate');
+const logger = require('./logger');
 
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 
-const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'));
+const web3 = new Web3(new Web3.providers.HttpProvider(
+  'http://localhost:8545', 60));
+
+const getCurrentBlock = bluebird.promisify(web3.eth.getBlockNumber);
 
 let contractAddress;
 let contractEventHash;
@@ -142,6 +146,7 @@ async function updateBalance(data) {
 }
 
 async function fastForward() {
+  const currentBlock = await getCurrentBlock();
   const lastBlockNumber = await redisClient.getAsync('currentBlock');
 
   const purchases = await getPurchasesSince(lastBlockNumber);
@@ -153,7 +158,6 @@ async function fastForward() {
   await incTotalReceived(newTotalReceived);
 
   // update block last when we are sure all other updates were successful
-  const currentBlock = web3.eth.blockNumber;
   await redisClient.setAsync('currentBlock', currentBlock);
 }
 
@@ -178,12 +182,12 @@ async function Tracker(address, topic) {
   events = new EventEmitter();
 
   try {
-    console.log('Updating entries since last run...');
+    logger.info('Updating entries since last run...');
     await fastForward();
-    console.log('Done');
+    logger.info('Done');
   } catch (error) {
-    events.emit('error', error.message);
-    return undefined;
+    events.emit('error', error);
+    return events;
   }
 
   const client = new WebsocketClient();
