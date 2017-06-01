@@ -51,10 +51,10 @@ function subscribe(conn, contractAddress, topic) {
   conn.send(rpcSubscribe(['newHeads', { includeTransactions: false }]));
 }
 
-async function fastForward(lastBlockNumber, updateBalance) {
+async function fastForward(lastBlockNumber, updateBalance, address, topic) {
   const currentBlock = await getCurrentBlock();
 
-  const purchases = await getPurchasesSince(lastBlockNumber);
+  const purchases = await getPurchasesSince(lastBlockNumber, address, topic);
   const newTotalReceived = _.reduce(
     purchases,
     (acc, purchase) => acc.plus(purchase.ethAmount),
@@ -65,8 +65,8 @@ async function fastForward(lastBlockNumber, updateBalance) {
   return [newTotalReceived, currentBlock];
 }
 
-async function getPurchasesSince(blockNumber) {
-  const logs = await getLogsSince(blockNumber);
+async function getPurchasesSince(blockNumber, address, topic) {
+  const logs = await getLogsSince(blockNumber, address, topic);
   const purchases = logs.map(utils.decodeLogEntry);
   return purchases;
 }

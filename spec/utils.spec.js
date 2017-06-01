@@ -1,6 +1,7 @@
 const { each } = require('lodash');
 const utils = require('../src/utils');
 const logEntry = require('./data/logEntry.json');
+const blockHeader = require('./data/blockHeader.json');
 const Web3 = require('web3');
 const web3 = new Web3();
 
@@ -40,20 +41,24 @@ describe('utils', () => {
   describe('getBlockNumber', () => {
     it('should return blockNumber as number if string', () => {
       const data = {
-        result: {
-          number: '1',
-        },
+        result: blockHeader,
       };
-      expect(typeof utils.getBlockNumber(data)).toBe('number');
+
+      const result = utils.getBlockNumber(data);
+      expect(typeof result).toBe('number');
+      expect(result).toBe(155);
     });
 
     it('should return blockNumber as number if number', () => {
       const data = {
         result: {
-          number: 124,
+          number: '0x133',
         },
       };
-      expect(typeof utils.getBlockNumber(data)).toBe('number');
+
+      const result = utils.getBlockNumber(data);
+      expect(typeof result).toBe('number');
+      expect(result).toBe(307);
     });
 
     it('should throw if there is no block number', () => {
@@ -89,19 +94,6 @@ describe('utils', () => {
       ['0x0D8775F648430679A709E98d2b0Cb6250d2887EF'],
       (example) => `should return false if address is ${example}`,
       false);
-  });
-
-  describe('formatPurchase', () => {
-    it('should return formatted string', () => {
-      const result = utils.formatPurchase({
-        ethAmount: '100000000000000000',
-        tokenAmount: '200000000000000000',
-        address: '0x123',
-      });
-
-      expect(result).toEqual(
-        'New donation: 0x123 got 0.2 MDA for 0.1 ETH');
-    });
   });
 
   describe('decodeLogEntry', () => {

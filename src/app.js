@@ -41,8 +41,12 @@ async function handleConnection(tracker, client) {
   client.on('action', handleClientAction.bind(null, tracker, client));
 }
 
-function makeAction(data) {
+function fundraiserUpdate(data) {
   return { type: 'FUNDRAISER_UPDATE', data };
+}
+
+function newPurchase(data) {
+  return { type: 'NEW_PURCHASE', data };
 }
 
 async function run(config) {
@@ -64,21 +68,25 @@ async function run(config) {
   startServer(tracker);
 }
 
+function emitAction(type, data) {
+  io.sockets.emit('action', { type, data });
+}
+
 function startServer(tracker) {
   io.on('connection', handleConnection.bind(null, tracker));
   io.listen(3000, () => logger.info('Listening on port 3000'));
 
   tracker.on('error', (message) => logger.error(message));
-  tracker.on('purchase', (message) => logger.info(message));
+  tracker.on('purchase', (data) => emitAction(newPurchase(data)));
   tracker.on(
     'block',
-    (height) => io.sockets.emit('action', makeAction({ blockNumber: height })));
+    (height) => emitAction(fundraiserUpdate({ blockNumber: height })));
   tracker.on(
     'update',
-    (total) => io.sockets.emit('action', makeAction({ totalReceived: total })));
+    (total) => emitAction(fundraiserUpdate({ totalReceived: total })));
   tracker.on(
     'rate',
-    (rate) => io.sockets.emit('action', makeAction({ exchangeRate: rate })));
+    (rate) => emitAction(fundraiserUpdate({ exchangeRate: rate })));
 }
 
 module.exports = {

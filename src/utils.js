@@ -17,20 +17,15 @@ module.exports = {
 
     if (typeof blockNum !== 'number') {
       blockNum = blockNum.slice('2');
+      return parseInt(blockNum, 16);
     }
 
-    return parseInt(blockNum, 16);
+    return parseInt(blockNum, 10);
   },
   isInvalidAddress(address) {
     return typeof address !== 'string' || address === null ||
       address === '' || address.slice(0, 2) !== '0x' ||
       address.length !== 42 || !address.match(/^0x[A-Fa-f0-9]{40}$/);
-  },
-  formatPurchase({ ethAmount, tokenAmount, address }) {
-    const humanEth = web3.fromWei(ethAmount).toString('10');
-    const humanToken = web3.fromWei(tokenAmount).toString('10');
-
-    return `New donation: ${address} got ${humanToken} MDA for ${humanEth} ETH`;
   },
   decodeLogEntry(logEntry) {
     const [ethAmount, tokenAmount] = [

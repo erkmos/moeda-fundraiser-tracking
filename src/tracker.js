@@ -3,11 +3,8 @@ const EventEmitter = require('events');
 const ExchangeRate = require('./exchangeRate');
 const logger = require('./logger');
 const {
-  isHeader, isLog, getBlockNumber, isInvalidAddress,
-  formatPurchase, decodeLogEntry,
+  isHeader, isLog, getBlockNumber, isInvalidAddress, decodeLogEntry,
 } = require('./utils');
-
-
 
 const web3 = new Web3();
 
@@ -23,6 +20,7 @@ class Tracker extends EventEmitter {
     this.gethClient = gethClient;
     this.address = address;
     this.topic = topic;
+    this.rater = new ExchangeRate.Updater();
 
     redisClient.on('error', errorHandler);
   }
@@ -32,7 +30,11 @@ class Tracker extends EventEmitter {
       logger.info('Updating entries since last run...');
       const lastBlockNumber = await this.redisClient.getAsync('currentBlock');
       const [totalReceived, currentBlock] = await this.gethClient.fastForward(
-        lastBlockNumber, this.updateBalance);
+        lastBlockNumber,
+        this.updateBalance.bind(this),
+        this.address,
+        this.topic);
+
       await this.incTotalReceived(totalReceived);
       await this.redisClient.setAsync('currentBlock', currentBlock);
       logger.info('Done');
@@ -41,8 +43,10 @@ class Tracker extends EventEmitter {
       throw error;
     }
 
-    this.rater = new ExchangeRate.Updater();
+    return this.setupExchangeRater();
+  }
 
+  async setupExchangeRater() {
     // update manually the first time since there is a delay and cache
     // might be empty (or outdated)
     const rate = await ExchangeRate.getRate();
@@ -89,23 +93,23 @@ class Tracker extends EventEmitter {
 
   async updateBlock(number) {
     await this.redisClient.setAsync('currentBlock', number);
+    this.emit('block', number);
   }
 
   async addPurchase(purchase) {
     await this.updateBalance(purchase);
     await this.incTotalReceived(purchase.ethAmount);
+    this.emit('purchase', purchase);
   }
 
-  handleSubscription(data) {
+  async handleSubscription(data) {
     if (isHeader(data)) {
       const blockNumber = getBlockNumber(data);
-      this.updateBlock(blockNumber);
-      this.emit('block', blockNumber);
+      await this.updateBlock(blockNumber);
     } else if (isLog(data)) {
       const purchase = decodeLogEntry(data.result);
-      this.addPurchase(purchase);
-      this.emit('purchase', formatPurchase(purchase));
-      this.sendFundraiserUpdate();
+      await this.addPurchase(purchase);
+      await this.sendFundraiserUpdate();
     }
   }
 
@@ -120,7 +124,7 @@ class Tracker extends EventEmitter {
     } else if (entry.method === 'eth_subscription' || entry.subscription) {
       this.handleSubscription(entry.params);
     } else {
-      this.emit('error', `unhandled message type ${entry}`);
+      this.emit('error', `unhandled message type ${JSON.stringify(entry)}`);
     }
   }
 
