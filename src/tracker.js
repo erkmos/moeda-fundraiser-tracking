@@ -6,6 +6,9 @@ const bluebird = require('bluebird');
 const EventEmitter = require('events');
 const ExchangeRate = require('./exchangeRate');
 const logger = require('./logger');
+const {
+  isHeader, isLog, getBlockNumber, isInvalidAddress,
+} = require('./utils');
 
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
@@ -61,18 +64,6 @@ function decodeLogEntry(logEntry) {
   const address = `0x${logEntry.topics[1].slice(26)}`;
 
   return { ethAmount, tokenAmount, address };
-}
-
-function isHeader(data) {
-  return _.get(data, 'result.parentHash') !== undefined;
-}
-
-function isLog(data) {
-  return _.get(data, 'result.topics') !== undefined;
-}
-
-function getBlockNumber(block) {
-  return parseInt(_.get(block, 'result.number').slice(2), 16);
 }
 
 async function updateBlock(number) {
@@ -230,13 +221,6 @@ async function getCurrentState() {
     'totalReceived', 'currentBlock', 'exchangeRate');
 
   return { totalReceived, currentBlock, exchangeRate };
-}
-
-function isInvalidAddress(address) {
-  return typeof address !== 'string' || address === null ||
-    address === '' ||
-    (address.length % 2) !== 0 ||
-    address.slice(0, 2) !== '0x' || address.length !== 42;
 }
 
 async function getBalance(address) {
