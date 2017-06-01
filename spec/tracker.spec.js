@@ -21,6 +21,8 @@ const {
   NEW_EXCHANGE_RATE_EVENT,
  } = require('../src/constants');
 
+let CLIENT_INSTANCE;
+
 describe('Tracker', () => {
   let redisClient;
 
@@ -275,7 +277,8 @@ describe('Tracker', () => {
 
       await instance.sendFundraiserUpdate();
 
-      expect(instance.emit).toHaveBeenCalledWith(TOTAL_RECEIVED_EVENT, totalReceived);
+      expect(instance.emit).toHaveBeenCalledWith(
+        TOTAL_RECEIVED_EVENT, totalReceived);
     });
   });
 
@@ -339,13 +342,16 @@ describe('Tracker', () => {
 });
 
 function asyncRedisFactory() {
-  const client = redis.createClient();
-  client.setAsync = bluebird.promisify(client.set);
-  client.getAsync = bluebird.promisify(client.get);
-  client.mgetAsync = bluebird.promisify(client.mget);
-  client.hsetAsync = bluebird.promisify(client.hset);
-  client.hgetAsync = bluebird.promisify(client.hget);
-  client.on = jasmine.createSpy();
+  if (!CLIENT_INSTANCE) {
+    CLIENT_INSTANCE = redis.createClient();
+    const client = CLIENT_INSTANCE;
+    client.setAsync = bluebird.promisify(client.set);
+    client.getAsync = bluebird.promisify(client.get);
+    client.mgetAsync = bluebird.promisify(client.mget);
+    client.hsetAsync = bluebird.promisify(client.hset);
+    client.hgetAsync = bluebird.promisify(client.hget);
+    client.on = jasmine.createSpy();
+  }
 
-  return client;
+  return CLIENT_INSTANCE;
 }
