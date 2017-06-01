@@ -1,5 +1,8 @@
 const { each } = require('lodash');
 const utils = require('../src/utils');
+const logEntry = require('./data/logEntry.json');
+const Web3 = require('web3');
+const web3 = new Web3();
 
 describe('utils', () => {
   describe('isHeader', () => {
@@ -86,6 +89,32 @@ describe('utils', () => {
       ['0x0D8775F648430679A709E98d2b0Cb6250d2887EF'],
       (example) => `should return false if address is ${example}`,
       false);
+  });
+
+  describe('formatPurchase', () => {
+    it('should return formatted string', () => {
+      const result = utils.formatPurchase({
+        ethAmount: '100000000000000000',
+        tokenAmount: '200000000000000000',
+        address: '0x123',
+      });
+
+      expect(result).toEqual(
+        'New donation: 0x123 got 0.2 MDA for 0.1 ETH');
+    });
+  });
+
+  describe('decodeLogEntry', () => {
+    it('should get amounts and address', () => {
+      const result = utils.decodeLogEntry(logEntry);
+
+      expect(result.ethAmount.toString('10'))
+        .toEqual(web3.toBigNumber('0xde0b6b3a7640000').toString('10'));
+      expect(result.tokenAmount.toString('10'))
+        .toEqual(web3.toBigNumber('0x8ac7230489e800000').toString('10'));
+      expect(result.address)
+        .toEqual('0x001d8d7dd820e22ce63e6d86d4a48346ba13c154');
+    });
   });
 });
 

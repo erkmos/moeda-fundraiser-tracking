@@ -8,6 +8,7 @@ const ExchangeRate = require('./exchangeRate');
 const logger = require('./logger');
 const {
   isHeader, isLog, getBlockNumber, isInvalidAddress,
+  formatPurchase, decodeLogEntry,
 } = require('./utils');
 
 bluebird.promisifyAll(redis.RedisClient.prototype);
@@ -47,23 +48,6 @@ function subscribe(conn) {
   ]));
 
   conn.send(rpcSubscribe(['newHeads', { includeTransactions: false }]));
-}
-
-function formatPurchase({ ethAmount, tokenAmount, address }) {
-  const humanEth = web3.fromWei(ethAmount).toString('10');
-  const humanToken = web3.fromWei(tokenAmount).toString('10');
-
-  return `New donation: ${address} got ${humanToken} MDA for ${humanEth} ETH`;
-}
-
-function decodeLogEntry(logEntry) {
-  const [ethAmount, tokenAmount] = [
-    web3.toBigNumber(logEntry.data.slice(0, 66)),
-    web3.toBigNumber(`0x${logEntry.data.slice(66, 130)}`),
-  ];
-  const address = `0x${logEntry.topics[1].slice(26)}`;
-
-  return { ethAmount, tokenAmount, address };
 }
 
 async function updateBlock(number) {
