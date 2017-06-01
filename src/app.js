@@ -1,6 +1,12 @@
-const tracker = require('./tracker');
+const Tracker = require('./tracker');
 const io = require('socket.io')();
+const bluebird = require('bluebird');
+const redis = require('redis');
 const logger = require('./logger');
+const gethClient = require('./gethClient');
+
+bluebird.promisifyAll(redis.RedisClient.prototype);
+bluebird.promisifyAll(redis.Multi.prototype);
 
 async function handleClientAction(client, action) {
   const result = { type: null };
@@ -39,21 +45,29 @@ function makeAction(data) {
   return { type: 'FUNDRAISER_UPDATE', data };
 }
 
-async function run(contractAddress, topic) {
-  const trackerEvents = await tracker.start(contractAddress, topic);
+async function run(config) {
+  const client = await gethClient.setupGeth(
+    config.gethHost, config.gethRpcPort, config.gethWsPort);
+
+  global.tracker = new Tracker(
+    redis.createClient(),
+    client,
+    config.contractAddress,
+    config.topic);
+  await tracker.start();
 
   io.on('connection', handleConnection);
   io.listen(3000, () => logger.info('Listening on port 3000'));
 
-  trackerEvents.on('error', (message) => logger.error(message));
-  trackerEvents.on('purchase', (message) => logger.info(message));
-  trackerEvents.on(
+  tracker.on('error', (message) => logger.error(message));
+  tracker.on('purchase', (message) => logger.info(message));
+  tracker.on(
     'block',
     (height) => io.sockets.emit('action', makeAction({ blockNumber: height })));
-  trackerEvents.on(
+  tracker.on(
     'update',
     (total) => io.sockets.emit('action', makeAction({ totalReceived: total })));
-  trackerEvents.on(
+  tracker.on(
     'rate',
     (rate) => io.sockets.emit('action', makeAction({ exchangeRate: rate })));
 }

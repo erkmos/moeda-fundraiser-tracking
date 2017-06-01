@@ -11,7 +11,8 @@ function getConfig() {
     redisHost: process.env.REDIS_HOST || '127.0.0.1',
     redisPort: process.env.REDIS_PORT || 6379,
     gethHost: process.env.GETH_HOST || '127.0.0.1',
-    gethPort: process.env.GETH_PORT || 8546,
+    gethRpcPort: process.env.GETH_RPC_PORT || 8545,
+    gethWsPort: process.env.GETH_WS_PORT || 8546,
   };
 }
 
