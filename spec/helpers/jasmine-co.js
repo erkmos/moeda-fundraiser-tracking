@@ -1,0 +1,2 @@
+require('jasmine-co').install();
+

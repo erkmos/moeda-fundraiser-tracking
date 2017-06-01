@@ -1,44 +1,43 @@
-const request = require('request');
+const request = require('request-promise-native');
 const EventEmitter = require('events');
+const _ = require('lodash');
+const logger = require('./logger');
+
+const BASE_URL = 'https://api.coinbase.com/v2/exchange-rates?currency=ETH';
 
 async function getRate() {
   const options = {
-    url: 'https://api.coinbase.com/v2/exchange-rates?currency=ETH',
     headers: { 'CB-VERSION': '2015-04-08' },
     json: true,
   };
 
-  const rates = await new Promise((resolve, reject) => {
-    request(options, (error, response, body) => {
-      if (!error && response.statusCode === 200) {
-        return resolve(body.data.rates);
-      }
+  const response = await request.get(BASE_URL, options);
 
-      return reject(error);
-    });
-  });
-
-  return rates.BRL;
+  return _.get(response, 'data.rates.BRL');
 }
 
-class ExchangeRate extends EventEmitter {
+class Updater extends EventEmitter {
   constructor(updateInterval = 120 * 1000) {
     super();
     this.updateInterval = updateInterval;
   }
 
-  getRate() {
-    return getRate();
-  }
-
   async updateRate() {
-    const rate = await getRate();
-    this.emit('data', rate);
+    try {
+      const rate = await getRate();
+
+      if (rate) {
+        this.emit('data', rate);
+      }
+    } catch (error) {
+      logger.error(`updateRate failed: ${error.message}`);
+    }
   }
 
   start() {
     this.interval = setInterval(
-      this.updateRate.bind(this), this.updateInterval);
+      this.updateRate.bind(this),
+      this.updateInterval);
   }
 
   stop() {
@@ -47,4 +46,8 @@ class ExchangeRate extends EventEmitter {
   }
 }
 
-module.exports = ExchangeRate;
+module.exports = {
+  Updater,
+  getRate,
+  BASE_URL,
+};

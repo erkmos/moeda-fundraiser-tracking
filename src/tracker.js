@@ -202,10 +202,10 @@ async function Tracker({
   connection.on('message', (data) => handleData(JSON.parse(data.utf8Data)));
   subscribe(connection);
 
-  const rater = new ExchangeRate();
+  const rater = new ExchangeRate.Updater();
 
   // update manually the first time since there is a delay
-  const rate = await rater.getRate();
+  const rate = await ExchangeRate.getRate();
   await updateExchangeRate(rate);
 
   rater.start();
