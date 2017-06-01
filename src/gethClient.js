@@ -9,8 +9,8 @@ let web3;
 async function connectWebsocket(host, port, handleData) {
   const client = new WebsocketClient();
   const connection = await new Promise((resolve, reject) => {
-    client.on('connect', (connection) => resolve(connection));
-    client.on('connectFailed', (error) => reject(error));
+    client.once('connect', (connection) => resolve(connection));
+    client.once('connectFailed', (error) => reject(error));
     client.connect(`ws://${host}:${port}`);
   });
 
