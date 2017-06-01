@@ -63,18 +63,18 @@ function newPurchase(data) {
 }
 
 async function run(config) {
-  const client = gethClient.setupGeth(
+  gethClient.setupGeth(
     config.gethHost, config.gethRpcPort);
 
   const tracker = new Tracker(
     redis.createClient(),
-    client,
-    config.contractAddress,
+    gethClient,
+    config.address,
     config.topic);
 
   // link websocket to tracker
   await gethClient.connectWebsocket(
-    config.gethHost, config.gethWsPort, tracker.handleData);
+    config.gethHost, config.gethWsPort, tracker.handleData.bind(tracker));
 
   await tracker.start();
 

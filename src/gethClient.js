@@ -72,6 +72,9 @@ async function getPurchasesSince(blockNumber, address, topic) {
 }
 
 async function getLogsSince(fromBlock, address, topic) {
+  if (!address || !topic) {
+    throw new Error('getLogsSince: address or topic cannot be undefined');
+  }
   const watcher = web3.eth.filter({
     fromBlock: fromBlock || 0,
     toBlock: 'latest',
