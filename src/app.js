@@ -8,7 +8,7 @@ const gethClient = require('./gethClient');
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 
-async function handleClientAction(client, action) {
+async function handleClientAction(tracker, client, action) {
   const result = { type: null };
 
   try {
@@ -29,7 +29,7 @@ async function handleClientAction(client, action) {
   client.emit('action', result);
 }
 
-async function handleConnection(client) {
+async function handleConnection(tracker, client) {
   try {
     const state = await tracker.getCurrentState();
     client.emit('update', state);
@@ -38,7 +38,7 @@ async function handleConnection(client) {
     return;
   }
 
-  client.on('action', handleClientAction.bind(null, client));
+  client.on('action', handleClientAction.bind(null, tracker, client));
 }
 
 function makeAction(data) {
@@ -49,14 +49,15 @@ async function run(config) {
   const client = await gethClient.setupGeth(
     config.gethHost, config.gethRpcPort, config.gethWsPort);
 
-  global.tracker = new Tracker(
+  const tracker = new Tracker(
     redis.createClient(),
     client,
     config.contractAddress,
     config.topic);
+
   await tracker.start();
 
-  io.on('connection', handleConnection);
+  io.on('connection', handleConnection.bind(null, tracker));
   io.listen(3000, () => logger.info('Listening on port 3000'));
 
   tracker.on('error', (message) => logger.error(message));
