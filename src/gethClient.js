@@ -7,21 +7,23 @@ const utils = require('./utils');
 let web3;
 const getCurrentBlock = bluebird.promisify(web3.eth.getBlockNumber);
 
-async function setupGeth(host, rpcPort, wsPort, handleData) {
-  web3 = new Web3(
-      new Web3.providers.HttpProvider(`http://${host}:${rpcPort}`, 60));
-
+async function connectWebsocket(host, port, handleData) {
   const client = new WebsocketClient();
   const connection = await new Promise((resolve, reject) => {
     client.on('connect', (connection) => resolve(connection));
     client.on('connectFailed', (error) => reject(error));
-    client.connect(`ws://${host}:${wsPort}`);
+    client.connect(`ws://${host}:${port}`);
   });
 
   connection.on('message', (data) => handleData(JSON.parse(data.utf8Data)));
   subscribe(connection);
 
   return connection;
+}
+
+function setupGeth(host, rpcPort) {
+  web3 = new Web3(
+      new Web3.providers.HttpProvider(`http://${host}:${rpcPort}`, 60));
 }
 
 function rpcRequest(method, params) {
@@ -90,6 +92,7 @@ async function getLogsSince(fromBlock, address, topic) {
 }
 
 module.exports = {
+  connectWebsocket,
   setupGeth,
   fastForward,
 };

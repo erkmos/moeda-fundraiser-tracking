@@ -28,6 +28,7 @@
     "jasmine": "2.6.0",
     "jasmine-co": "^1.2.2",
     "jasmine-spec-reporter": "^4.1.0",
-    "nock": "^9.0.13"
+    "nock": "^9.0.13",
+    "redis-mock": "^0.17.0"
   }
 }

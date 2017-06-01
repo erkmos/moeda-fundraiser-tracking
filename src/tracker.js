@@ -16,14 +16,15 @@ function handleRedisError(error) {
 }
 
 class Tracker extends EventEmitter {
-  constructor(redisClient, gethClient, address, topic) {
+  constructor(
+    redisClient, gethClient, address, topic, errorHandler = handleRedisError) {
     super();
     this.redisClient = redisClient;
     this.gethClient = gethClient;
     this.address = address;
     this.topic = topic;
 
-    redisClient.on('error', handleRedisError);
+    redisClient.on('error', errorHandler);
   }
 
   async start() {

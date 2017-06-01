@@ -46,8 +46,8 @@ function makeAction(data) {
 }
 
 async function run(config) {
-  const client = await gethClient.setupGeth(
-    config.gethHost, config.gethRpcPort, config.gethWsPort);
+  const client = gethClient.setupGeth(
+    config.gethHost, config.gethRpcPort);
 
   const tracker = new Tracker(
     redis.createClient(),
@@ -55,8 +55,16 @@ async function run(config) {
     config.contractAddress,
     config.topic);
 
+  // link websocket to tracker
+  await gethClient.connectWebsocket(
+    config.gethHost, config.gethWsPort, tracker.handleData);
+
   await tracker.start();
 
+  startServer(tracker);
+}
+
+function startServer(tracker) {
   io.on('connection', handleConnection.bind(null, tracker));
   io.listen(3000, () => logger.info('Listening on port 3000'));
 
