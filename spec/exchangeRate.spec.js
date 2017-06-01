@@ -67,7 +67,19 @@ describe('ExchangeRate', () => {
   });
 
   describe('getRate', () => {
+    it('should fetch data', async () => {
+      const body = {
+        data: {
+          rates: {
+            BRL: '123.45',
+          },
+        },
+      };
+      stubRequest(200, body);
 
+      const rate = await getRate();
+      expect(rate).toBe('123.45');
+    });
   });
 });
 
