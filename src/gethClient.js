@@ -5,7 +5,6 @@ const _ = require('lodash');
 const utils = require('./utils');
 
 let web3;
-const getCurrentBlock = bluebird.promisify(web3.eth.getBlockNumber);
 
 async function connectWebsocket(host, port, handleData) {
   const client = new WebsocketClient();
@@ -52,6 +51,7 @@ function subscribe(conn, contractAddress, topic) {
 }
 
 async function fastForward(lastBlockNumber, updateBalance, address, topic) {
+  const getCurrentBlock = bluebird.promisify(web3.eth.getBlockNumber);
   const currentBlock = await getCurrentBlock();
 
   const purchases = await getPurchasesSince(lastBlockNumber, address, topic);

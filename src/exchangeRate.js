@@ -2,6 +2,7 @@ const request = require('request-promise-native');
 const EventEmitter = require('events');
 const _ = require('lodash');
 const logger = require('./logger');
+const { DATA_EVENT } = require('./constants');
 
 const BASE_URL = 'https://api.coinbase.com/v2/exchange-rates?currency=ETH';
 
@@ -27,7 +28,7 @@ class Updater extends EventEmitter {
       const rate = await getRate();
 
       if (rate) {
-        this.emit('data', rate);
+        this.emit(DATA_EVENT, rate);
       }
     } catch (error) {
       logger.error(`updateRate failed: ${error.message}`);

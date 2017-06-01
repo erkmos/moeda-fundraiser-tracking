@@ -8,6 +8,18 @@ const URL = require('url').URL;
 const utils = require('../src/utils');
 const logEntry = require('./data/logEntry.json');
 const blockHeader = require('./data/blockHeader.json');
+const {
+  ERROR_EVENT,
+  CURRENT_BLOCK_KEY,
+  DATA_EVENT,
+  TOTAL_RECEIVED_EVENT,
+  TOTAL_RECEIVED_KEY,
+  EXCHANGE_RATE_KEY,
+  BALANCES_KEY,
+  BLOCK_EVENT,
+  NEW_PURCHASE_EVENT,
+  NEW_EXCHANGE_RATE_EVENT,
+ } = require('../src/constants');
 
 describe('Tracker', () => {
   let redisClient;
@@ -45,7 +57,7 @@ describe('Tracker', () => {
 
     it('should assign error event handler', () => {
       expect(redisClient.on).toHaveBeenCalledWith(
-        'error', jasmine.any(Function));
+        ERROR_EVENT, jasmine.any(Function));
     });
   });
 
@@ -79,7 +91,7 @@ describe('Tracker', () => {
         lastBlock, jasmine.any(Function), address, topic);
       expect(instance.incTotalReceived).toHaveBeenCalledWith(totalReceived);
       expect(redisClient.setAsync).toHaveBeenCalledWith(
-        'currentBlock', currentBlock);
+        CURRENT_BLOCK_KEY, currentBlock);
       expect(winston.info.calls.argsFor(0)).toEqual(
         ['Updating entries since last run...']);
       expect(winston.info.calls.argsFor(1)).toEqual(['Done']);
@@ -103,7 +115,7 @@ describe('Tracker', () => {
       expect(instance.rater.start).toHaveBeenCalled();
       expect(instance.updateExchangeRate).toHaveBeenCalledWith(rate);
       expect(instance.rater.on).toHaveBeenCalledWith(
-        'data', instance.updateExchangeRate);
+        DATA_EVENT, instance.updateExchangeRate);
     });
   });
 
@@ -112,12 +124,12 @@ describe('Tracker', () => {
       const client = asyncRedisFactory();
       const instance = new Tracker(client);
 
-      client.set('totalReceived', '50');
+      client.set(TOTAL_RECEIVED_KEY, '50');
 
       await instance.incTotalReceived('15');
 
       expect(await client.getAsync('purchases')).toEqual('1');
-      expect(await client.getAsync('totalReceived')).toEqual('65');
+      expect(await client.getAsync(TOTAL_RECEIVED_KEY)).toEqual('65');
     });
   });
 
@@ -125,9 +137,9 @@ describe('Tracker', () => {
     it('should get current state', async () => {
       const client = asyncRedisFactory();
       const instance = new Tracker(client);
-      client.set('totalReceived', '15');
-      client.set('currentBlock', '1111');
-      client.set('exchangeRate', '13.15');
+      client.set(TOTAL_RECEIVED_KEY, '15');
+      client.set(CURRENT_BLOCK_KEY, '1111');
+      client.set(EXCHANGE_RATE_KEY, '13.15');
 
       const {
         totalReceived, currentBlock, exchangeRate,
@@ -150,11 +162,11 @@ describe('Tracker', () => {
     });
 
     afterEach(() => {
-      client.hdel('balances', address);
+      client.hdel(BALANCES_KEY, address);
     });
 
     it('should get balance for address if one exists', async () => {
-      client.hset('balances', address, '5');
+      client.hset(BALANCES_KEY, address, '5');
       const balance = await instance.getBalance(address);
       expect(balance).toBe('5');
     });
@@ -172,8 +184,8 @@ describe('Tracker', () => {
       spyOn(instance, 'emit');
       await instance.updateExchangeRate('15');
 
-      expect(await client.getAsync('exchangeRate')).toBe('15');
-      expect(instance.emit).toHaveBeenCalledWith('rate', '15');
+      expect(await client.getAsync(EXCHANGE_RATE_KEY)).toBe('15');
+      expect(instance.emit).toHaveBeenCalledWith(NEW_EXCHANGE_RATE_EVENT, '15');
     });
   });
 
@@ -186,8 +198,8 @@ describe('Tracker', () => {
 
       await instance.updateBlock(blockNumber);
 
-      expect(instance.emit).toHaveBeenCalledWith('block', blockNumber);
-      expect(await client.getAsync('currentBlock')).toBe(blockNumber);
+      expect(instance.emit).toHaveBeenCalledWith(BLOCK_EVENT, blockNumber);
+      expect(await client.getAsync(CURRENT_BLOCK_KEY)).toBe(blockNumber);
     });
   });
 
@@ -220,7 +232,7 @@ describe('Tracker', () => {
 
     it('should emit purchase event', async () => {
       await instance.addPurchase(purchase);
-      expect(instance.emit).toHaveBeenCalledWith('purchase', purchase);
+      expect(instance.emit).toHaveBeenCalledWith(NEW_PURCHASE_EVENT, purchase);
     });
   });
 
@@ -258,12 +270,12 @@ describe('Tracker', () => {
       const client = asyncRedisFactory();
       const instance = new Tracker(client);
       const totalReceived = '15555555';
-      client.set('totalReceived', totalReceived);
+      client.set(TOTAL_RECEIVED_KEY, totalReceived);
       spyOn(instance, 'emit');
 
       await instance.sendFundraiserUpdate();
 
-      expect(instance.emit).toHaveBeenCalledWith('update', totalReceived);
+      expect(instance.emit).toHaveBeenCalledWith(TOTAL_RECEIVED_EVENT, totalReceived);
     });
   });
 
@@ -280,7 +292,7 @@ describe('Tracker', () => {
     it('should emit data event for rpc result', () => {
       instance.handleData({ result: 'bengo' });
 
-      expect(instance.emit).toHaveBeenCalledWith('data', 'bengo');
+      expect(instance.emit).toHaveBeenCalledWith(DATA_EVENT, 'bengo');
     });
 
     it('should call handleSubscript for subscription update', () => {
@@ -295,7 +307,7 @@ describe('Tracker', () => {
       instance.handleData({ boo: 'foo' });
 
       expect(instance.emit).toHaveBeenCalledWith(
-        'error', 'unhandled message type {"boo":"foo"}');
+        ERROR_EVENT, 'unhandled message type {"boo":"foo"}');
     });
   });
 
@@ -310,16 +322,16 @@ describe('Tracker', () => {
 
     it('should update current balance if one exists', async () => {
       const address = '0x0123';
-      client.hset('balances', address, '15');
+      client.hset(BALANCES_KEY, address, '15');
       await instance.updateBalance({ tokenAmount: '123', address });
 
-      expect(await client.hgetAsync('balances', address)).toBe('138');
+      expect(await client.hgetAsync(BALANCES_KEY, address)).toBe('138');
     });
 
     it('should set new balance if none exists', async () => {
       const address = '0x0124';
       await instance.updateBalance({ tokenAmount: '123', address });
-      const newBalance = await client.hgetAsync('balances', address);
+      const newBalance = await client.hgetAsync(BALANCES_KEY, address);
 
       expect(newBalance).toBe('123');
     });

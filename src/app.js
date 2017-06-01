@@ -4,6 +4,18 @@ const bluebird = require('bluebird');
 const redis = require('redis');
 const logger = require('./logger');
 const gethClient = require('./gethClient');
+const {
+  CLIENT_ACTION_EVENT,
+  CLIENT_BALANCE_ERROR_EVENT,
+  CLIENT_BALANCE_RESULT,
+  CLIENT_FUNDRAISER_UPDATE_ACTION,
+  CLIENT_NEW_PURCHASE_ACTION,
+  TOTAL_RECEIVED_EVENT,
+  ERROR_EVENT,
+  NEW_PURCHASE_EVENT,
+  BLOCK_EVENT,
+  NEW_EXCHANGE_RATE_EVENT,
+} = require('./constants');
 
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
@@ -15,38 +27,39 @@ async function handleClientAction(tracker, client, action) {
     switch (action.type) {
       case 'server/balance':
         result.data = await tracker.getBalance(action.data);
-        result.type = 'BALANCE';
+        result.type = CLIENT_BALANCE_RESULT;
         break;
       default:
         return;
     }
   } catch (error) {
-    result.type = 'BALANCE_ERROR';
+    result.type = CLIENT_BALANCE_ERROR_EVENT;
     result.data = 'request error';
   }
 
 
-  client.emit('action', result);
+  client.emit(CLIENT_ACTION_EVENT, result);
 }
 
 async function handleConnection(tracker, client) {
   try {
     const state = await tracker.getCurrentState();
-    client.emit('update', state);
+    client.emit(TOTAL_RECEIVED_EVENT, state);
   } catch (error) {
-    client.emit('error', 'failed to get state');
+    client.emit(ERROR_EVENT, 'failed to get state');
     return;
   }
 
-  client.on('action', handleClientAction.bind(null, tracker, client));
+  client.on(
+    CLIENT_ACTION_EVENT, handleClientAction.bind(null, tracker, client));
 }
 
 function fundraiserUpdate(data) {
-  return { type: 'FUNDRAISER_UPDATE', data };
+  return { type: CLIENT_FUNDRAISER_UPDATE_ACTION, data };
 }
 
 function newPurchase(data) {
-  return { type: 'NEW_PURCHASE', data };
+  return { type: CLIENT_NEW_PURCHASE_ACTION, data };
 }
 
 async function run(config) {
@@ -69,23 +82,23 @@ async function run(config) {
 }
 
 function emitAction(type, data) {
-  io.sockets.emit('action', { type, data });
+  io.sockets.emit(CLIENT_ACTION_EVENT, { type, data });
 }
 
 function startServer(tracker) {
   io.on('connection', handleConnection.bind(null, tracker));
   io.listen(3000, () => logger.info('Listening on port 3000'));
 
-  tracker.on('error', (message) => logger.error(message));
-  tracker.on('purchase', (data) => emitAction(newPurchase(data)));
+  tracker.on(ERROR_EVENT, (message) => logger.error(message));
+  tracker.on(NEW_PURCHASE_EVENT, (data) => emitAction(newPurchase(data)));
   tracker.on(
-    'block',
+    BLOCK_EVENT,
     (height) => emitAction(fundraiserUpdate({ blockNumber: height })));
   tracker.on(
-    'update',
+    TOTAL_RECEIVED_EVENT,
     (total) => emitAction(fundraiserUpdate({ totalReceived: total })));
   tracker.on(
-    'rate',
+    NEW_EXCHANGE_RATE_EVENT,
     (rate) => emitAction(fundraiserUpdate({ exchangeRate: rate })));
 }
 
