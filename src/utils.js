@@ -16,7 +16,9 @@ module.exports = {
     }
 
     if (typeof blockNum !== 'number') {
-      blockNum = blockNum.slice('2');
+      if (blockNum.slice(0, 2) === '0x') {
+        blockNum = blockNum.slice('2');
+      }
       return parseInt(blockNum, 16);
     }
 
@@ -28,6 +30,9 @@ module.exports = {
       address.length !== 42 || !address.match(/^0x[A-Fa-f0-9]{40}$/);
   },
   decodeLogEntry(logEntry) {
+    if (logEntry.data.length !== 130) {
+      throw new Error(`invalid log data ${logEntry.data}`);
+    }
     const [ethAmount, tokenAmount] = [
       web3.toBigNumber(logEntry.data.slice(0, 66)),
       web3.toBigNumber(`0x${logEntry.data.slice(66, 130)}`),
@@ -35,5 +40,12 @@ module.exports = {
     const address = `0x${logEntry.topics[1].slice(26)}`;
 
     return { ethAmount, tokenAmount, address };
+  },
+  formatPurchase({ ethAmount, tokenAmount, address }) {
+    return {
+      ethAmount: ethAmount.toString('10'),
+      tokenAmount: tokenAmount.toString('10'),
+      address,
+    };
   },
 };

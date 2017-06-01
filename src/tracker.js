@@ -4,6 +4,7 @@ const ExchangeRate = require('./exchangeRate');
 const logger = require('./logger');
 const {
   isHeader, isLog, getBlockNumber, isInvalidAddress, decodeLogEntry,
+  formatPurchase,
 } = require('./utils');
 const {
   ERROR_EVENT,
@@ -112,14 +113,18 @@ class Tracker extends EventEmitter {
   async addPurchase(purchase) {
     await this.updateBalance(purchase);
     await this.incTotalReceived(purchase.ethAmount);
-    this.emit(NEW_PURCHASE_EVENT, purchase);
+    this.emit(NEW_PURCHASE_EVENT, formatPurchase(purchase));
+  }
+
+  isSubscribed(data) {
+    return data.result.topics[0] === this.topic;
   }
 
   async handleSubscription(data) {
     if (isHeader(data)) {
       const blockNumber = getBlockNumber(data);
       await this.updateBlock(blockNumber);
-    } else if (isLog(data)) {
+    } else if (isLog(data) && this.isSubscribed(data)) {
       const purchase = decodeLogEntry(data.result);
       await this.addPurchase(purchase);
       await this.sendFundraiserUpdate();

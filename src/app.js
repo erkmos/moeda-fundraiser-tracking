@@ -74,14 +74,18 @@ async function run(config) {
 
   // link websocket to tracker
   await gethClient.connectWebsocket(
-    config.gethHost, config.gethWsPort, tracker.handleData.bind(tracker));
+    config.gethHost,
+    config.gethWsPort,
+    tracker.handleData.bind(tracker),
+    config.address,
+    config.topic);
 
   await tracker.start();
 
   startServer(tracker);
 }
 
-function emitAction(type, data) {
+function emitAction({ type, data }) {
   io.sockets.emit(CLIENT_ACTION_EVENT, { type, data });
 }
 

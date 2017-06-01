@@ -6,7 +6,7 @@ const utils = require('./utils');
 
 let web3;
 
-async function connectWebsocket(host, port, handleData) {
+async function connectWebsocket(host, port, handleData, address, topic) {
   const client = new WebsocketClient();
   const connection = await new Promise((resolve, reject) => {
     client.once('connect', (connection) => resolve(connection));
@@ -15,7 +15,7 @@ async function connectWebsocket(host, port, handleData) {
   });
 
   connection.on('message', (data) => handleData(JSON.parse(data.utf8Data)));
-  subscribe(connection);
+  subscribe(connection, address, topic);
 
   return connection;
 }
