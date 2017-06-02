@@ -1,8 +1,14 @@
 const App = require('./src/app').App;
 const logger = require('./src/logger');
+const _ = require('lodash');
+
+function missingEnvVars() {
+  return _.isUndefined(process.env.CONTRACT_ADDRESS) ||
+    _.isUndefined(process.env.CONTRACT_TOPIC);
+}
 
 function getConfig() {
-  if (!process.env.CONTRACT_ADDRESS || !process.env.CONTRACT_TOPIC) {
+  if (missingEnvVars()) {
     throw new Error('Missing CONTRACT_ADDRESS and/or CONTRACT_TOPIC in env!');
   }
   return {
