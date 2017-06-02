@@ -112,7 +112,7 @@ describe('Tracker', () => {
       const url = new URL(BASE_URL);
       nock(url.origin)
         .get(`${url.pathname}?${url.searchParams.toString()}`)
-        .reply(200, { data: { rates: { BRL: rate } } });
+        .reply(200, { data: { rates: { USD: rate } } });
 
       await instance.setupExchangeRater();
       expect(instance.rater.start).toHaveBeenCalled();

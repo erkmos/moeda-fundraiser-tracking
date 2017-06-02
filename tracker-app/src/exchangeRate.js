@@ -14,7 +14,7 @@ async function getRate() {
 
   const response = await request.get(BASE_URL, options);
 
-  return _.get(response, 'data.rates.BRL');
+  return _.get(response, 'data.rates.USD');
 }
 
 class Updater extends EventEmitter {

@@ -23,7 +23,7 @@ describe('ExchangeRate', () => {
           const body = {
             data: {
               rates: {
-                BRL: '123.45',
+                USD: '123.45',
               },
             },
           };
@@ -71,7 +71,7 @@ describe('ExchangeRate', () => {
       const body = {
         data: {
           rates: {
-            BRL: '123.45',
+            USD: '123.45',
           },
         },
       };

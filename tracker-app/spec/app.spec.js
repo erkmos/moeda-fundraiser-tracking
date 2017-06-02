@@ -74,7 +74,9 @@ describe('App', () => {
 
       await app.handleConnection(fakeTracker, fakeClient);
 
-      expect(fakeClient.emit).toHaveBeenCalledWith(TOTAL_RECEIVED_EVENT, 'foo');
+      expect(fakeClient.emit).toHaveBeenCalledWith(
+        CLIENT_ACTION_EVENT, {
+          type: CLIENT_FUNDRAISER_UPDATE_ACTION, data: 'foo' });
     });
 
     it('should emit error event on exception', async () => {
@@ -189,7 +191,7 @@ describe('App', () => {
           'connection', jasmine.any(Function));
 
         expect(instance.io.listen).toHaveBeenCalledWith(
-          3000, jasmine.any(Function));
+          8787, jasmine.any(Function));
         const callback = instance.io.listen.calls.argsFor(0)[1];
         spyOn(logger, 'info');
         callback();
