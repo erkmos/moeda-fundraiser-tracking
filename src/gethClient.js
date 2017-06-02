@@ -21,6 +21,8 @@ async function connectWebsocket(host, port, handleData, address, topic) {
   client.onerror = Websocket.prototype.onerror.bind(client);
   client.onmessage = (data) => handleData(JSON.parse(data));
   client.onopen = () => {
+    // assume that geth was offline and will emit events while
+    // syncing for past blocks
     logger.info('Websocket reconnected.');
     subscribe(client, address, topic);
   };
