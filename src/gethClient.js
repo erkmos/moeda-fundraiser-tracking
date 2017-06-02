@@ -7,8 +7,17 @@ const logger = require('winston');
 
 let web3;
 
+function reconnectListenerFactory(clientInstance, address, topic) {
+  return () => {
+    // assume that geth was offline and will emit events while
+    // syncing for past blocks
+    logger.info('Websocket reconnected.');
+    subscribe(clientInstance, address, topic);
+  };
+}
+
 async function connectWebsocket(host, port, handleData, address, topic) {
-  const client = new Websocket();
+  const client = Websocket.create();
 
   // we want to pause execution on the first run during setup
   await new Promise((resolve, reject) => {
@@ -18,14 +27,9 @@ async function connectWebsocket(host, port, handleData, address, topic) {
   });
 
   // future calls will use the standard callbacks
-  client.onerror = Websocket.prototype.onerror.bind(client);
+  client.onerror = (error) => logger.error(error);
   client.onmessage = (data) => handleData(JSON.parse(data));
-  client.onopen = () => {
-    // assume that geth was offline and will emit events while
-    // syncing for past blocks
-    logger.info('Websocket reconnected.');
-    subscribe(client, address, topic);
-  };
+  client.onopen = reconnectListenerFactory(client, address, topic);
 
   return client;
 }
@@ -106,6 +110,7 @@ async function getLogsSince(fromBlock, address, topic) {
 }
 
 module.exports = {
+  reconnectListenerFactory,
   connectWebsocket,
   setupGeth,
   fastForward,

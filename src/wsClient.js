@@ -82,4 +82,11 @@ class WebsocketClient {
   }
 }
 
-module.exports = WebsocketClient;
+function create() {
+  return new WebsocketClient();
+}
+
+module.exports = {
+  WebsocketClient,
+  create,
+};
