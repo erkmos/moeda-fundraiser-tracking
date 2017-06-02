@@ -3,6 +3,7 @@ const Web3 = require('web3');
 const bluebird = require('bluebird');
 const _ = require('lodash');
 const utils = require('./utils');
+const logger = require('winston');
 
 let web3;
 
@@ -17,9 +18,10 @@ async function connectWebsocket(host, port, handleData, address, topic) {
   });
 
   // future calls will use the standard callbacks
-  client.onerror = client.prototype.onerror;
-  client.onmessage = (data) => handleData(JSON.parse(data.utf8Data));
+  client.onerror = Websocket.prototype.onerror.bind(client);
+  client.onmessage = (data) => handleData(JSON.parse(data));
   client.onopen = () => {
+    logger.info('Websocket reconnected.');
     subscribe(client, address, topic);
   };
 
@@ -45,6 +47,7 @@ function rpcSubscribe(params) {
 }
 
 function subscribe(conn, contractAddress, topic) {
+  logger.info('Resubscribing', contractAddress, topic);
   conn.send(rpcSubscribe([
     'logs',
     {

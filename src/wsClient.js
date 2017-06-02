@@ -15,7 +15,7 @@ class WebsocketClient {
       this.onopen();
     });
 
-    this.on('message', (data, flags) => {
+    this.instance.on('message', (data, flags) => {
       this.messageCount += 1;
       this.onmessage(data, flags, this.messageCount);
     });
@@ -54,29 +54,31 @@ class WebsocketClient {
 
   reconnect(error) {
     this.logger.warn(
-      `WebSocketClient: retry in ${this.autoReconnectInterval}ms`, error);
+      `Websocket: retry in ${this.autoReconnectInterval}ms`, error.message);
     const that = this;
+    if (this.retrying) return;
 
-    setTimeout(() => {
-      that.logger.info('WebSocketClient: reconnecting...');
+    this.retrying = setTimeout(() => {
+      that.logger.info('Websocket: reconnecting...');
       that.open(that.url);
+      that.retrying = undefined;
     }, this.autoReconnectInterval);
   }
 
   onopen() {
-    this.logger.info('websocket opened');
+    this.logger.info('Websocket opened');
   }
 
   onmessage(data, flags, messageIndex) {
-    this.logger.info(`websocket message received ${data} ${messageIndex}`);
+    this.logger.info(`Websocket message received ${data} ${messageIndex}`);
   }
 
   onerror(error) {
-    this.logger.error('websocket error', error.message);
+    this.logger.error('Websocket error', error.message);
   }
 
   onclose() {
-    this.logger.info('websocket closed');
+    this.logger.info('Websocket closed');
   }
 }
 
