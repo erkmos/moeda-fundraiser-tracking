@@ -19,6 +19,7 @@ services:
       - CONTRACT_TOPIC=0x12cb4648cf3058b17ceeb33e579f8b0bc269fe0843f3900b8e24b6c54871703c
   proxy:
     build: proxy
+    image: proxy
     volumes:
       - /etc/letsencrypt/live/ws.moeda.in/fullchain.pem:/etc/nginx/ssl/fullchain.pem:ro
       - /etc/letsencrypt/live/ws.moeda.in/privkey.pem:/etc/nginx/ssl/privkey.pem:ro
