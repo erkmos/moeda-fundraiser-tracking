@@ -1,4 +1,4 @@
-const WebsocketClient = require('websocket').client;
+const Websocket = require('ws');
 const Web3 = require('web3');
 const bluebird = require('bluebird');
 const _ = require('lodash');
@@ -7,7 +7,7 @@ const utils = require('./utils');
 let web3;
 
 async function connectWebsocket(host, port, handleData, address, topic) {
-  const client = new WebsocketClient();
+  const client = new Websocket();
   const connection = await new Promise((resolve, reject) => {
     client.once('connect', (connection) => resolve(connection));
     client.once('connectFailed', (error) => reject(error));
