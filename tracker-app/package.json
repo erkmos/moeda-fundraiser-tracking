@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "bluebird": "3.5.0",
+    "bufferutil": "^3.0.1",
     "forever-monitor": "^1.7.1",
     "lodash": "4.17.4",
     "reconnect-ws": "^0.1.0",
@@ -19,6 +20,7 @@
     "request-promise-native": "^1.0.4",
     "socket.io": "2.0.1",
     "socket.io-client": "2.0.1",
+    "utf-8-validate": "^3.0.2",
     "web3": "0.19.0",
     "winston": "2.3.1",
     "ws": "^3.0.0"
