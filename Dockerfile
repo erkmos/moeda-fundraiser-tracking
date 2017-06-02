@@ -6,4 +6,4 @@ WORKDIR /app
 RUN npm install -g yarn && yarn
 
 EXPOSE 3000
-ENTRYPOINT ["node", "/app/index.js"]
+ENTRYPOINT ["node", "runner.js"]
