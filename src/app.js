@@ -96,7 +96,7 @@ class App {
 
   setupTracker(config) {
     this.tracker = new Tracker(
-      redis.createClient(),
+      redis.createClient({ host: config.redisHost, port: config.redisPort }),
       gethClient,
       config.address,
       config.topic);
