@@ -1,4 +1,4 @@
-const Websocket = require('./wsClient');
+const WebSocket = require('reconnect-ws');
 const Web3 = require('web3');
 const bluebird = require('bluebird');
 const _ = require('lodash');
@@ -7,29 +7,25 @@ const logger = require('winston');
 
 let web3;
 
-function reconnectListenerFactory(clientInstance, address, topic) {
-  return () => {
-    // assume that geth was offline and will emit events while
-    // syncing for past blocks
-    logger.info('Websocket reconnected.');
-    subscribe(clientInstance, address, topic);
-  };
-}
-
 async function connectWebsocket(host, port, handleData, address, topic) {
-  const client = Websocket.create();
-
-  // we want to pause execution on the first run during setup
-  await new Promise((resolve, reject) => {
-    client.onopen = resolve;
-    client.onerror = reject;
-    client.open(`ws://${host}:${port}`);
+  const client = WebSocket();
+  client.on('connect', (conn) => {
+    logger.info('Websocket reconnected.');
+    conn.on('data', (data) => handleData(JSON.parse(data)));
+    // assume that geth was offline and will emit events while
+    // syncing for past blocks, i.e. don't run fastforward
+    subscribe(conn, address, topic);
+  });
+  client.on('reconnect', () => {
+    logger.warn('geth connection lost, reconnecting...');
   });
 
-  // future calls will use the standard callbacks
-  client.onerror = (error) => logger.error(error);
-  client.onmessage = (data) => handleData(JSON.parse(data));
-  client.onopen = reconnectListenerFactory(client, address, topic);
+  client.on('error', (error) => logger.error(error.message));
+  client.connect(`ws://${host}:${port}`);
+
+  // we want to pause execution on the first run during setup
+  // to allow websocket to finish connecting
+  await bluebird.delay(300);
 
   return client;
 }
@@ -54,7 +50,7 @@ function rpcSubscribe(params) {
 
 function subscribe(conn, contractAddress, topic) {
   logger.info('Resubscribing', contractAddress, topic);
-  conn.send(rpcSubscribe([
+  conn.write(rpcSubscribe([
     'logs',
     {
       address: contractAddress,
@@ -62,7 +58,7 @@ function subscribe(conn, contractAddress, topic) {
     },
   ]));
 
-  conn.send(rpcSubscribe(['newHeads', { includeTransactions: false }]));
+  conn.write(rpcSubscribe(['newHeads', { includeTransactions: false }]));
 }
 
 async function fastForward(lastBlockNumber, updateBalance, address, topic) {
@@ -110,7 +106,6 @@ async function getLogsSince(fromBlock, address, topic) {
 }
 
 module.exports = {
-  reconnectListenerFactory,
   connectWebsocket,
   setupGeth,
   fastForward,

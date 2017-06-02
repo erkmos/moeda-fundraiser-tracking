@@ -67,19 +67,19 @@ function handleError(error) {
   logger.error(error);
 }
 
-function handlePurchaseEvent(emitAction, data) {
+function handlePurchaseEvent(data) {
   this.emitAction(newPurchase(data));
 }
 
-function handleBlockEvent(emitAction, height) {
+function handleBlockEvent(height) {
   this.emitAction(fundraiserUpdate({ blockNumber: height }));
 }
 
-function handleTotalReceivedEvent(emitAction, total) {
+function handleTotalReceivedEvent(total) {
   this.emitAction(fundraiserUpdate({ totalReceived: total }));
 }
 
-function handleExchangeRateEvent(emitAction, rate) {
+function handleExchangeRateEvent(rate) {
   this.emitAction(fundraiserUpdate({ exchangeRate: rate }));
 }
 

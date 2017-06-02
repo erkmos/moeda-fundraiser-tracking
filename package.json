@@ -12,6 +12,7 @@
   "dependencies": {
     "bluebird": "3.5.0",
     "lodash": "4.17.4",
+    "reconnect-ws": "^0.1.0",
     "redis": "2.7.1",
     "request": "^2.81.0",
     "request-promise-native": "^1.0.4",
