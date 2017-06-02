@@ -45,7 +45,7 @@ async function handleClientAction(tracker, client, action) {
 async function handleConnection(tracker, client) {
   try {
     const state = await tracker.getCurrentState();
-    client.emit(TOTAL_RECEIVED_EVENT, state);
+    client.emit(CLIENT_ACTION_EVENT, fundraiserUpdate(state));
   } catch (error) {
     client.emit(ERROR_EVENT, 'failed to get state');
     return;
@@ -72,7 +72,7 @@ function handlePurchaseEvent(data) {
 }
 
 function handleBlockEvent(height) {
-  this.emitAction(fundraiserUpdate({ blockNumber: height }));
+  this.emitAction(fundraiserUpdate({ currentBlock: height }));
 }
 
 function handleTotalReceivedEvent(total) {
