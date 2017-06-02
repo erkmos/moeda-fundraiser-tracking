@@ -23,6 +23,8 @@ services:
     volumes:
       - /etc/letsencrypt/live/ws.moeda.in/fullchain.pem:/etc/nginx/ssl/fullchain.pem:ro
       - /etc/letsencrypt/live/ws.moeda.in/privkey.pem:/etc/nginx/ssl/privkey.pem:ro
+    ports:
+      - "443:443"
 volumes:
   blockchain:
     driver: local
