@@ -28,6 +28,7 @@ async function main() {
     await app.run(getConfig());
   } catch (error) {
     logger.error('Failed to start tracker:', error.message);
+    process.exit(1);
   }
 }
 
