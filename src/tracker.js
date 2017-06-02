@@ -67,7 +67,7 @@ class Tracker extends EventEmitter {
     await this.updateExchangeRate(rate);
 
     this.rater.start();
-    this.rater.on(DATA_EVENT, this.updateExchangeRate);
+    this.rater.on(DATA_EVENT, this.updateExchangeRate.bind(this));
   }
 
   async incTotalReceived(amount) {
