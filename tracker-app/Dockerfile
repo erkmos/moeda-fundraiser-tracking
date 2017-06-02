@@ -5,5 +5,5 @@ ADD . /app
 WORKDIR /app
 RUN npm install -g yarn && yarn
 
-EXPOSE 3000
+EXPOSE 8787
 ENTRYPOINT ["node", "runner.js"]

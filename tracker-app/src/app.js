@@ -126,7 +126,7 @@ class App {
       this.setupSocket();
     }
     this.io.on('connection', handleConnection.bind(null, tracker));
-    this.io.listen(3000, () => logger.info('Listening on port 3000'));
+    this.io.listen(8787, () => logger.info('Listening on port 3000'));
 
     tracker.on(ERROR_EVENT, handleError.bind(this));
     tracker.on(NEW_PURCHASE_EVENT, handlePurchaseEvent.bind(this));
