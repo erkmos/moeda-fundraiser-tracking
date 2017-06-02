@@ -72,12 +72,17 @@ class Tracker extends EventEmitter {
     this.rater.on(DATA_EVENT, this.updateExchangeRate);
   }
 
-  async incTotalReceived(amount) {
+  async incTotalReceived(amount, reverted) {
     const totalReceived = await this.redisClient.getAsync(TOTAL_RECEIVED_KEY);
     const newTotal = web3.toBigNumber(amount).plus(totalReceived || 0);
     await this.redisClient.setAsync(
       TOTAL_RECEIVED_KEY, newTotal.toString('10'));
-    this.redisClient.incr('purchases');
+
+    if (reverted) {
+      this.redisClient.decr('purchases');
+    } else {
+      this.redisClient.incr('purchases');
+    }
   }
 
   async getCurrentState() {
@@ -112,9 +117,9 @@ class Tracker extends EventEmitter {
     this.emit(BLOCK_EVENT, number);
   }
 
-  async addPurchase(purchase) {
+  async addPurchase(purchase, reverted) {
     await this.updateBalance(purchase);
-    await this.incTotalReceived(purchase.ethAmount);
+    await this.incTotalReceived(purchase.ethAmount, reverted);
     this.emit(NEW_PURCHASE_EVENT, formatPurchase(purchase));
   }
 
@@ -131,7 +136,7 @@ class Tracker extends EventEmitter {
       if (data.result.removed) {
         purchase = reversePurchase(purchase);
       }
-      await this.addPurchase(purchase);
+      await this.addPurchase(purchase, data.result.removed);
       await this.sendFundraiserUpdate();
     }
   }
