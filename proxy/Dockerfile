@@ -121,7 +121,7 @@ RUN \
 	&& ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log
 
-COPY proxy-conf /etc/nginx/conf.d/proxy.conf
+COPY proxy.conf /etc/nginx/conf.d/proxy.conf
 RUN mkdir -p /etc/nginx/ssl
 COPY dhparam2048 /etc/nginx/ssl/dhparam2048
 COPY nginx.conf /etc/nginx/nginx.conf
