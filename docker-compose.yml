@@ -6,10 +6,12 @@ services:
       - "6379:6379"
   geth:
     build: geth
+    image: "geth"
     volumes:
       - /data
   app:
-    image: moeda-tracker
+    build: "tracker-app"
+    image: "trackerapp"
     environment:
       - GETH_HOST=geth
       - GETH_PORT=8546
