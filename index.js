@@ -1,4 +1,4 @@
-const app = require('./src/app');
+const App = require('./src/app').App;
 const logger = require('./src/logger');
 
 function getConfig() {
@@ -18,6 +18,7 @@ function getConfig() {
 
 async function main() {
   try {
+    const app = new App();
     await app.run(getConfig());
   } catch (error) {
     logger.error('Failed to start tracker:', error.message);

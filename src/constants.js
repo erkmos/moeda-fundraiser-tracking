@@ -10,6 +10,7 @@ module.exports = {
   CLIENT_BALANCE_ERROR_EVENT: 'BALANCE_ERROR',
   CLIENT_BALANCE_RESULT: 'BALANCE',
   CLIENT_ACTION_EVENT: 'action',
+  CLIENT_BALANCE_REQUEST: 'server/balance',
   CURRENT_BLOCK_KEY: 'currentBlock',
   BALANCES_KEY: 'balances',
   TOTAL_RECEIVED_KEY: 'totalReceived',

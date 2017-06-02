@@ -1,5 +1,5 @@
 const Tracker = require('./tracker');
-const io = require('socket.io')();
+const SocketIO = require('socket.io');
 const bluebird = require('bluebird');
 const redis = require('redis');
 const logger = require('./logger');
@@ -15,6 +15,7 @@ const {
   NEW_PURCHASE_EVENT,
   BLOCK_EVENT,
   NEW_EXCHANGE_RATE_EVENT,
+  CLIENT_BALANCE_REQUEST,
 } = require('./constants');
 
 bluebird.promisifyAll(redis.RedisClient.prototype);
@@ -25,7 +26,7 @@ async function handleClientAction(tracker, client, action) {
 
   try {
     switch (action.type) {
-      case 'server/balance':
+      case CLIENT_BALANCE_REQUEST:
         result.data = await tracker.getBalance(action.data);
         result.type = CLIENT_BALANCE_RESULT;
         break;
@@ -62,50 +63,87 @@ function newPurchase(data) {
   return { type: CLIENT_NEW_PURCHASE_ACTION, data };
 }
 
-async function run(config) {
-  gethClient.setupGeth(
-    config.gethHost, config.gethRpcPort);
-
-  const tracker = new Tracker(
-    redis.createClient(),
-    gethClient,
-    config.address,
-    config.topic);
-
-  // link websocket to tracker
-  await gethClient.connectWebsocket(
-    config.gethHost,
-    config.gethWsPort,
-    tracker.handleData.bind(tracker),
-    config.address,
-    config.topic);
-
-  await tracker.start();
-
-  startServer(tracker);
+function handleError(error) {
+  logger.error(error);
 }
 
-function emitAction({ type, data }) {
-  io.sockets.emit(CLIENT_ACTION_EVENT, { type, data });
+function handlePurchaseEvent(emitAction, data) {
+  this.emitAction(newPurchase(data));
 }
 
-function startServer(tracker) {
-  io.on('connection', handleConnection.bind(null, tracker));
-  io.listen(3000, () => logger.info('Listening on port 3000'));
+function handleBlockEvent(emitAction, height) {
+  this.emitAction(fundraiserUpdate({ blockNumber: height }));
+}
 
-  tracker.on(ERROR_EVENT, (message) => logger.error(message));
-  tracker.on(NEW_PURCHASE_EVENT, (data) => emitAction(newPurchase(data)));
-  tracker.on(
-    BLOCK_EVENT,
-    (height) => emitAction(fundraiserUpdate({ blockNumber: height })));
-  tracker.on(
-    TOTAL_RECEIVED_EVENT,
-    (total) => emitAction(fundraiserUpdate({ totalReceived: total })));
-  tracker.on(
-    NEW_EXCHANGE_RATE_EVENT,
-    (rate) => emitAction(fundraiserUpdate({ exchangeRate: rate })));
+function handleTotalReceivedEvent(emitAction, total) {
+  this.emitAction(fundraiserUpdate({ totalReceived: total }));
+}
+
+function handleExchangeRateEvent(emitAction, rate) {
+  this.emitAction(fundraiserUpdate({ exchangeRate: rate }));
+}
+
+class App {
+  constructor() {
+    this.run = this.run.bind(this);
+    this.startServer = this.startServer.bind(this);
+    this.emitAction = this.emitAction.bind(this);
+  }
+
+  setupSocket() {
+    this.io = new SocketIO();
+  }
+
+  setupTracker(config) {
+    this.tracker = new Tracker(
+      redis.createClient(),
+      gethClient,
+      config.address,
+      config.topic);
+  }
+
+  async run(config) {
+    gethClient.setupGeth(
+      config.gethHost, config.gethRpcPort);
+
+    this.setupTracker(config);
+
+    // link websocket to tracker
+    await gethClient.connectWebsocket(
+      config.gethHost,
+      config.gethWsPort,
+      this.tracker.handleData.bind(this.tracker),
+      config.address,
+      config.topic);
+
+    await this.tracker.start();
+
+    this.startServer(this.tracker);
+  }
+
+  startServer(tracker) {
+    if (!this.io) {
+      this.setupSocket();
+    }
+    this.io.on('connection', handleConnection.bind(null, tracker));
+    this.io.listen(3000, () => logger.info('Listening on port 3000'));
+
+    tracker.on(ERROR_EVENT, handleError.bind(this));
+    tracker.on(NEW_PURCHASE_EVENT, handlePurchaseEvent.bind(this));
+    tracker.on(BLOCK_EVENT, handleBlockEvent.bind(this));
+    tracker.on(TOTAL_RECEIVED_EVENT, handleTotalReceivedEvent.bind(this));
+    tracker.on(NEW_EXCHANGE_RATE_EVENT, handleExchangeRateEvent.bind(this));
+  }
+
+  emitAction(actionData) {
+    this.io.sockets.emit(CLIENT_ACTION_EVENT, actionData);
+  }
 }
 
 module.exports = {
-  run,
+  handleClientAction,
+  handleConnection,
+  fundraiserUpdate,
+  newPurchase,
+  App,
 };
