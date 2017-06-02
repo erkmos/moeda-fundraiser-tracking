@@ -21,6 +21,7 @@ const {
   NEW_EXCHANGE_RATE_EVENT,
  } = require('../src/constants');
 
+
 let CLIENT_INSTANCE;
 
 describe('Tracker', () => {
@@ -332,6 +333,25 @@ describe('Tracker', () => {
       await instance.updateBalance({ tokenAmount: '123', address });
 
       expect(await client.hgetAsync(BALANCES_KEY, address)).toBe('138');
+    });
+
+    it('should set balance to zero if new one would be negative',
+    async () => {
+      const address = '0x0125';
+      client.hset('balances', address, '12');
+      await instance.updateBalance({ tokenAmount: '-123', address });
+      const newBalance = await client.hgetAsync(BALANCES_KEY, address);
+
+      expect(newBalance).toBe('0');
+    });
+
+    it('should reduce current balance if negative', async () => {
+      const address = '0x0127';
+      client.hset('balances', address, '125');
+      await instance.updateBalance({ tokenAmount: '-123', address });
+      const newBalance = await client.hgetAsync(BALANCES_KEY, address);
+
+      expect(newBalance).toBe('2');
     });
 
     it('should set new balance if none exists', async () => {

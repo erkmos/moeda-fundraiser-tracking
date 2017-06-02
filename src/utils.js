@@ -48,4 +48,10 @@ module.exports = {
       address,
     };
   },
+  reversePurchase(purchase) {
+    return Object.assign(
+      {}, purchase, {
+        ethAmount: purchase.ethAmount.mul(-1),
+        tokenAmount: purchase.tokenAmount.mul(-1) });
+  },
 };

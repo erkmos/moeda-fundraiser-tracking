@@ -4,7 +4,7 @@ const ExchangeRate = require('./exchangeRate');
 const logger = require('./logger');
 const {
   isHeader, isLog, getBlockNumber, isInvalidAddress, decodeLogEntry,
-  formatPurchase,
+  formatPurchase, reversePurchase,
 } = require('./utils');
 const {
   ERROR_EVENT,
@@ -127,7 +127,10 @@ class Tracker extends EventEmitter {
       const blockNumber = getBlockNumber(data);
       await this.updateBlock(blockNumber);
     } else if (isLog(data) && this.isSubscribed(data)) {
-      const purchase = decodeLogEntry(data.result);
+      let purchase = decodeLogEntry(data.result);
+      if (data.result.removed) {
+        purchase = reversePurchase(purchase);
+      }
       await this.addPurchase(purchase);
       await this.sendFundraiserUpdate();
     }
@@ -154,7 +157,10 @@ class Tracker extends EventEmitter {
     if (balance === null) {
       balance = 0;
     }
-    const newBalance = web3.toBigNumber(balance).plus(data.tokenAmount);
+    let newBalance = web3.toBigNumber(balance).plus(data.tokenAmount);
+    if (newBalance.lt(0)) {
+      newBalance = web3.toBigNumber(0);
+    }
     await this.redisClient.hsetAsync(
       BALANCES_KEY, data.address, newBalance.toString(10));
   }

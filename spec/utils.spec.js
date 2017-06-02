@@ -124,6 +124,19 @@ describe('utils', () => {
       });
     });
   });
+
+  describe('reversePurchase', () => {
+    it('should invert amounts if log was removed', () => {
+      const data = {
+        ethAmount: web3.toBigNumber(30),
+        tokenAmount: web3.toBigNumber(77),
+        address: '0x123',
+      };
+      const purchase = utils.reversePurchase(data);
+      expect(purchase.ethAmount.toString('10')).toEqual('-30');
+      expect(purchase.tokenAmount.toString('10')).toEqual('-77');
+    });
+  });
 });
 
 function repeatBooleanTest(fn, cases, formatMessage, expected) {
