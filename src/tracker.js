@@ -34,6 +34,8 @@ class Tracker extends EventEmitter {
     this.address = address;
     this.topic = topic;
     this.rater = new ExchangeRate.Updater();
+    this.updateExchangeRate = this.updateExchangeRate.bind(this);
+    this.updateBalance = this.updateBalance.bind(this);
 
     redisClient.on(ERROR_EVENT, errorHandler);
   }
@@ -45,7 +47,7 @@ class Tracker extends EventEmitter {
         .getAsync(CURRENT_BLOCK_KEY);
       const [totalReceived, currentBlock] = await this.gethClient.fastForward(
         lastBlockNumber,
-        this.updateBalance.bind(this),
+        this.updateBalance,
         this.address,
         this.topic);
 
@@ -67,7 +69,7 @@ class Tracker extends EventEmitter {
     await this.updateExchangeRate(rate);
 
     this.rater.start();
-    this.rater.on(DATA_EVENT, this.updateExchangeRate.bind(this));
+    this.rater.on(DATA_EVENT, this.updateExchangeRate);
   }
 
   async incTotalReceived(amount) {

@@ -234,7 +234,8 @@ describe('Tracker', () => {
 
     it('should emit purchase event', async () => {
       await instance.addPurchase(purchase);
-      expect(instance.emit).toHaveBeenCalledWith(NEW_PURCHASE_EVENT, purchase);
+      expect(instance.emit).toHaveBeenCalledWith(
+        NEW_PURCHASE_EVENT, utils.formatPurchase(purchase));
     });
   });
 
@@ -244,7 +245,7 @@ describe('Tracker', () => {
 
     beforeEach(() => {
       client = asyncRedisFactory();
-      instance = new Tracker(client);
+      instance = new Tracker(client, null, null, logEntry.topics[0]);
     });
 
     it('should update block number if header', async () => {
@@ -259,8 +260,10 @@ describe('Tracker', () => {
       spyOn(instance, 'addPurchase').and.returnValue(Promise.resolve());
       spyOn(instance, 'sendFundraiserUpdate')
         .and.returnValue(Promise.resolve());
+      const data = { result: logEntry };
+      expect(instance.isSubscribed(data)).toBe(true);
 
-      await instance.handleSubscription({ result: logEntry });
+      await instance.handleSubscription(data);
 
       expect(instance.addPurchase).toHaveBeenCalledWith(purchase);
       expect(instance.sendFundraiserUpdate).toHaveBeenCalled();

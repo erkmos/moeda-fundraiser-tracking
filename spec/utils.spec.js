@@ -108,6 +108,22 @@ describe('utils', () => {
         .toEqual('0x001d8d7dd820e22ce63e6d86d4a48346ba13c154');
     });
   });
+
+  describe('formatPurchase', () => {
+    it('should stringify amounts', () => {
+      const data = {
+        ethAmount: web3.toBigNumber(123),
+        tokenAmount: web3.toBigNumber(1234),
+        address: 'abc',
+      };
+      const result = utils.formatPurchase(data);
+      expect(result).toEqual({
+        ethAmount: '123',
+        tokenAmount: '1234',
+        address: 'abc',
+      });
+    });
+  });
 });
 
 function repeatBooleanTest(fn, cases, formatMessage, expected) {
