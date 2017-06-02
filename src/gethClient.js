@@ -1,4 +1,4 @@
-const Websocket = require('ws');
+const Websocket = require('./wsClient');
 const Web3 = require('web3');
 const bluebird = require('bluebird');
 const _ = require('lodash');
@@ -8,16 +8,22 @@ let web3;
 
 async function connectWebsocket(host, port, handleData, address, topic) {
   const client = new Websocket();
-  const connection = await new Promise((resolve, reject) => {
-    client.once('connect', (connection) => resolve(connection));
-    client.once('connectFailed', (error) => reject(error));
-    client.connect(`ws://${host}:${port}`);
+
+  // we want to pause execution on the first run during setup
+  await new Promise((resolve, reject) => {
+    client.onopen = resolve;
+    client.onerror = reject;
+    client.open(`ws://${host}:${port}`);
   });
 
-  connection.on('message', (data) => handleData(JSON.parse(data.utf8Data)));
-  subscribe(connection, address, topic);
+  // future calls will use the standard callbacks
+  client.onerror = client.prototype.onerror;
+  client.onmessage = (data) => handleData(JSON.parse(data.utf8Data));
+  client.onopen = () => {
+    subscribe(client, address, topic);
+  };
 
-  return connection;
+  return client;
 }
 
 function setupGeth(host, rpcPort) {
