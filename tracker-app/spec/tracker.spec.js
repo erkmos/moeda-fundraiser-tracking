@@ -239,7 +239,7 @@ describe('Tracker', () => {
       await instance.addPurchase(purchase);
 
       expect(instance.incTotalReceived)
-        .toHaveBeenCalledWith(purchase.ethAmount);
+        .toHaveBeenCalledWith(purchase.ethAmount, undefined);
     });
 
     it('should emit purchase event', async () => {
@@ -275,7 +275,7 @@ describe('Tracker', () => {
 
       await instance.handleSubscription(data);
 
-      expect(instance.addPurchase).toHaveBeenCalledWith(purchase);
+      expect(instance.addPurchase).toHaveBeenCalledWith(purchase, undefined);
       expect(instance.sendFundraiserUpdate).toHaveBeenCalled();
     });
   });
