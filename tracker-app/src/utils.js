@@ -25,9 +25,7 @@ module.exports = {
     return parseInt(blockNum, 10);
   },
   isInvalidAddress(address) {
-    return typeof address !== 'string' || address === null ||
-      address === '' || address.slice(0, 2) !== '0x' ||
-      address.length !== 42 || !address.match(/^0x[A-Fa-f0-9]{40}$/);
+    return !web3.isAddress(address);
   },
   decodeLogEntry(logEntry) {
     if (logEntry.data.length !== 130) {
