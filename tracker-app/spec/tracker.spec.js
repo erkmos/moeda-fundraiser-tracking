@@ -19,6 +19,7 @@ const {
   BLOCK_EVENT,
   NEW_PURCHASE_EVENT,
   NEW_EXCHANGE_RATE_EVENT,
+  PURCHASES_COUNT_KEY,
  } = require('../src/constants');
 
 
@@ -143,14 +144,17 @@ describe('Tracker', () => {
       client.set(TOTAL_RECEIVED_KEY, '15');
       client.set(CURRENT_BLOCK_KEY, '1111');
       client.set(EXCHANGE_RATE_KEY, '13.15');
+      client.set(PURCHASES_COUNT_KEY, 0);
+      client.incr(PURCHASES_COUNT_KEY);
 
       const {
-        totalReceived, currentBlock, exchangeRate,
+        totalReceived, currentBlock, exchangeRate, purchases,
       } = await instance.getCurrentState();
 
       expect(totalReceived).toBe('15');
       expect(currentBlock).toBe('1111');
       expect(exchangeRate).toBe('13.15');
+      expect(purchases).toBe('1');
     });
   });
 
@@ -285,13 +289,14 @@ describe('Tracker', () => {
       const client = asyncRedisFactory();
       const instance = new Tracker(client);
       const totalReceived = '15555555';
+      const purchases = '1';
       client.set(TOTAL_RECEIVED_KEY, totalReceived);
       spyOn(instance, 'emit');
 
       await instance.sendFundraiserUpdate();
 
       expect(instance.emit).toHaveBeenCalledWith(
-        TOTAL_RECEIVED_EVENT, totalReceived);
+        TOTAL_RECEIVED_EVENT, { totalReceived, purchases });
     });
   });
 

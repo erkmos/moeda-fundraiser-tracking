@@ -17,6 +17,7 @@ const {
   BLOCK_EVENT,
   NEW_PURCHASE_EVENT,
   NEW_EXCHANGE_RATE_EVENT,
+  PURCHASES_COUNT_KEY,
  } = require('./constants');
 
 const web3 = new Web3();
@@ -79,19 +80,22 @@ class Tracker extends EventEmitter {
       TOTAL_RECEIVED_KEY, newTotal.toString('10'));
 
     if (reverted) {
-      this.redisClient.decr('purchases');
+      this.redisClient.decr(PURCHASES_COUNT_KEY);
     } else {
-      this.redisClient.incr('purchases');
+      this.redisClient.incr(PURCHASES_COUNT_KEY);
     }
   }
 
   async getCurrentState() {
     const [
-      totalReceived, currentBlock, exchangeRate,
+      totalReceived, currentBlock, exchangeRate, purchases,
     ] = await this.redisClient.mgetAsync(
-      TOTAL_RECEIVED_KEY, CURRENT_BLOCK_KEY, EXCHANGE_RATE_KEY);
+      TOTAL_RECEIVED_KEY,
+      CURRENT_BLOCK_KEY,
+      EXCHANGE_RATE_KEY,
+      PURCHASES_COUNT_KEY);
 
-    return { totalReceived, currentBlock, exchangeRate };
+    return { totalReceived, currentBlock, exchangeRate, purchases };
   }
 
   async getBalance(address) {
@@ -142,8 +146,9 @@ class Tracker extends EventEmitter {
   }
 
   async sendFundraiserUpdate() {
-    const totalReceived = await this.redisClient.getAsync(TOTAL_RECEIVED_KEY);
-    this.emit(TOTAL_RECEIVED_EVENT, totalReceived);
+    const [totalReceived, purchases] = await this.redisClient.mgetAsync(
+      TOTAL_RECEIVED_KEY, PURCHASES_COUNT_KEY);
+    this.emit(TOTAL_RECEIVED_EVENT, { totalReceived, purchases });
   }
 
   handleData(entry) {

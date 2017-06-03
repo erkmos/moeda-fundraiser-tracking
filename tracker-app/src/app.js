@@ -75,8 +75,8 @@ function handleBlockEvent(height) {
   this.emitAction(fundraiserUpdate({ currentBlock: height }));
 }
 
-function handleTotalReceivedEvent(total) {
-  this.emitAction(fundraiserUpdate({ totalReceived: total }));
+function handleTotalReceivedEvent(state) {
+  this.emitAction(fundraiserUpdate(state));
 }
 
 function handleExchangeRateEvent(rate) {
