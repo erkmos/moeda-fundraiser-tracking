@@ -178,6 +178,15 @@ describe('Tracker', () => {
       const balance = await instance.getBalance(address);
       expect(balance).toBe('0');
     });
+
+    it('should throw if address is invalid', async () => {
+      try {
+        await instance.getBalance('barf');
+        fail('should have thrown');
+      } catch (error) {
+        expect(error.message).toBe('invalid address');
+      }
+    });
   });
 
   describe('updateExchangeRate', () => {

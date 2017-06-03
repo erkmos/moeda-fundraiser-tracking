@@ -91,7 +91,7 @@ class Tracker extends EventEmitter {
 
   async getBalance(address) {
     if (isInvalidAddress(address)) {
-      return undefined;
+      throw new Error('invalid address');
     }
 
     try {
