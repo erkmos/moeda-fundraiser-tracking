@@ -19,6 +19,7 @@ function getConfig() {
     gethHost: process.env.GETH_HOST || '127.0.0.1',
     gethRpcPort: process.env.GETH_RPC_PORT || 8545,
     gethWsPort: process.env.GETH_WS_PORT || 8546,
+    startBlock: process.env.START_BLOCK,
   };
 }
 

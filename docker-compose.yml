@@ -17,6 +17,7 @@ services:
       - REDIS_HOST=redis
       - CONTRACT_ADDRESS=0x4870E705a3def9DDa6da7A953D1cd3CCEDD08573
       - CONTRACT_TOPIC=0x12cb4648cf3058b17ceeb33e579f8b0bc269fe0843f3900b8e24b6c54871703c
+      - START_BLOCK=3782416
   proxy:
     build: proxy
     image: proxy

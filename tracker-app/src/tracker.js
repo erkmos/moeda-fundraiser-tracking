@@ -28,17 +28,18 @@ function handleRedisError(error) {
 
 class Tracker extends EventEmitter {
   constructor(
-    redisClient, gethClient, address, topic, errorHandler = handleRedisError) {
+    redisClient, gethClient, address, topic, startBlock) {
     super();
     this.redisClient = redisClient;
     this.gethClient = gethClient;
     this.address = address;
     this.topic = topic;
+    this.startBlock = startBlock;
     this.rater = new ExchangeRate.Updater();
     this.updateExchangeRate = this.updateExchangeRate.bind(this);
     this.updateBalance = this.updateBalance.bind(this);
 
-    redisClient.on(ERROR_EVENT, errorHandler);
+    redisClient.on(ERROR_EVENT, handleRedisError);
   }
 
   async start() {
@@ -46,10 +47,13 @@ class Tracker extends EventEmitter {
       logger.info('Updating entries since last run...');
       const lastBlockNumber = await this.redisClient
         .getAsync(CURRENT_BLOCK_KEY);
+      const blockNumber = Math.max(
+        lastBlockNumber, parseInt(this.startBlock, 10));
+
       const [
         totalReceived, currentBlock, numPurchases,
       ] = await this.gethClient.fastForward(
-        lastBlockNumber,
+        blockNumber,
         this.updateBalance,
         this.address,
         this.topic);

@@ -75,6 +75,7 @@ describe('Tracker', () => {
       const lastBlock = 5;
       const totalReceived = 15;
       const currentBlock = 19;
+      const startBlock = 0;
 
       spyOn(geth, 'fastForward').and.returnValue(Promise.resolve([
         totalReceived, currentBlock,
@@ -83,7 +84,8 @@ describe('Tracker', () => {
         .and.returnValue(Promise.resolve(lastBlock));
       spyOn(redisClient, 'setAsync').and.returnValue(Promise.resolve());
 
-      const instance = new Tracker(redisClient, geth, address, topic);
+      const instance = new Tracker(
+        redisClient, geth, address, topic, startBlock);
       spyOn(instance, 'setupExchangeRater');
       spyOn(instance, 'updateBalance');
       spyOn(instance, 'incTotalReceived');
@@ -259,7 +261,7 @@ describe('Tracker', () => {
 
     beforeEach(() => {
       client = asyncRedisFactory();
-      instance = new Tracker(client, null, null, logEntry.topics[0]);
+      instance = new Tracker(client, null, null, logEntry.topics[0], 0);
     });
 
     it('should update block number if header', async () => {
