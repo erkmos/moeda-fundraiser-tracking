@@ -46,13 +46,16 @@ class Tracker extends EventEmitter {
       logger.info('Updating entries since last run...');
       const lastBlockNumber = await this.redisClient
         .getAsync(CURRENT_BLOCK_KEY);
-      const [totalReceived, currentBlock] = await this.gethClient.fastForward(
+      const [
+        totalReceived, currentBlock, numPurchases,
+      ] = await this.gethClient.fastForward(
         lastBlockNumber,
         this.updateBalance,
         this.address,
         this.topic);
 
       await this.incTotalReceived(totalReceived);
+      await this.redisClient.setAsync(PURCHASES_COUNT_KEY, numPurchases);
       await this.redisClient.setAsync(CURRENT_BLOCK_KEY, currentBlock);
       logger.info('Done');
     } catch (error) {

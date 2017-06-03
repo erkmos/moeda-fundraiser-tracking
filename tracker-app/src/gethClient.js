@@ -72,8 +72,9 @@ async function fastForward(lastBlockNumber, updateBalance, address, topic) {
     web3.toBigNumber(0));
 
   await bluebird.each(purchases, updateBalance);
+  const numPurchases = purchases ? purchases.length : 0;
 
-  return [newTotalReceived, currentBlock];
+  return [newTotalReceived, currentBlock, numPurchases];
 }
 
 async function getPurchasesSince(blockNumber, address, topic) {
