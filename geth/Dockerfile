@@ -1,15 +1,11 @@
-FROM alpine:3.6
+FROM debian:jessie-slim
 
 ENV GETH_VERSION=v1.6.5
 
-RUN \
-  apk add --update go git make gcc musl-dev linux-headers && \
-  git clone https://github.com/ethereum/go-ethereum       && \
-  cd go-ethereum && git checkout $GETH_VERSION            && \
-  make geth                                               && \
-  cp build/bin/geth /usr/local/bin/           && \
-  apk del git go make gcc musl-dev linux-headers          && \
-  rm -rf /go-ethereum && rm -rf /var/cache/apk/*
+RUN apt-get update && apt-get install -y wget && \
+  wget https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.6.5-cf87713d.tar.gz && \
+  tar zxf geth-linux-amd64-1.6.5-cf87713d.tar.gz && \
+  cp geth-linux-amd64-1.6.5-cf87713d/geth /usr/bin/geth
 ADD startGeth.sh /startGeth.sh
 RUN chmod +x /startGeth.sh
 
