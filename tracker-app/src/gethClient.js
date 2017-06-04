@@ -78,6 +78,7 @@ function sumAmounts(purchases) {
 async function fastForward(lastBlockNumber, updateBalance, address, topic) {
   const getCurrentBlock = bluebird.promisify(web3.eth.getBlockNumber);
   const currentBlock = await getCurrentBlock();
+  logger.info('Starting sync from block', lastBlockNumber);
 
   const purchases = await getPurchasesSince(lastBlockNumber, address, topic);
   const [newTotalReceived, newTokensSold] = sumAmounts(purchases);
