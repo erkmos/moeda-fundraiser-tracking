@@ -27,5 +27,5 @@ services:
     ports:
       - "443:443"
 volumes:
-  blockchain:
+  gethblockchain:
     driver: local
