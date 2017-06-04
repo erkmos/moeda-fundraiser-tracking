@@ -7,6 +7,8 @@ const winston = require('winston');
 const URL = require('url').URL;
 const utils = require('../src/utils');
 const logEntry = require('./data/logEntry.json');
+const Web3 = require('web3');
+const web3 = new Web3();
 const blockHeader = require('./data/blockHeader.json');
 const {
   ERROR_EVENT,
@@ -20,6 +22,7 @@ const {
   NEW_PURCHASE_EVENT,
   NEW_EXCHANGE_RATE_EVENT,
   PURCHASES_COUNT_KEY,
+  TOTAL_SOLD_KEY,
  } = require('../src/constants');
 
 
@@ -73,16 +76,18 @@ describe('Tracker', () => {
       const address = 'address';
       const topic = 'topic';
       const lastBlock = 5;
-      const totalReceived = 15;
+      const totalReceived = web3.toBigNumber(15);
       const currentBlock = 19;
       const startBlock = 0;
+      const numPurchases = 15;
+      const tokensSold = web3.toBigNumber('1500');
 
       spyOn(geth, 'fastForward').and.returnValue(Promise.resolve([
-        totalReceived, currentBlock,
+        totalReceived, currentBlock, numPurchases, tokensSold,
       ]));
       spyOn(redisClient, 'getAsync')
         .and.returnValue(Promise.resolve(lastBlock));
-      spyOn(redisClient, 'setAsync').and.returnValue(Promise.resolve());
+      spyOn(redisClient, 'msetAsync').and.returnValue(Promise.resolve());
 
       const instance = new Tracker(
         redisClient, geth, address, topic, startBlock);
@@ -95,9 +100,10 @@ describe('Tracker', () => {
 
       expect(geth.fastForward).toHaveBeenCalledWith(
         lastBlock, jasmine.any(Function), address, topic);
-      expect(instance.incTotalReceived).toHaveBeenCalledWith(totalReceived);
-      expect(redisClient.setAsync).toHaveBeenCalledWith(
-        CURRENT_BLOCK_KEY, currentBlock);
+      expect(instance.incTotalReceived).toHaveBeenCalledWith(
+        totalReceived, tokensSold);
+      expect(redisClient.msetAsync).toHaveBeenCalledWith(
+        PURCHASES_COUNT_KEY, numPurchases, CURRENT_BLOCK_KEY, currentBlock);
       expect(winston.info.calls.argsFor(0)).toEqual(
         ['Updating entries since last run...']);
       expect(winston.info.calls.argsFor(1)).toEqual(['Done']);
@@ -132,7 +138,7 @@ describe('Tracker', () => {
 
       client.set(TOTAL_RECEIVED_KEY, '50');
 
-      await instance.incTotalReceived('15');
+      await instance.incTotalReceived('15', '17');
 
       expect(await client.getAsync('purchases')).toEqual('1');
       expect(await client.getAsync(TOTAL_RECEIVED_KEY)).toEqual('65');
@@ -245,7 +251,8 @@ describe('Tracker', () => {
       await instance.addPurchase(purchase);
 
       expect(instance.incTotalReceived)
-        .toHaveBeenCalledWith(purchase.ethAmount, undefined);
+        .toHaveBeenCalledWith(
+          purchase.ethAmount, purchase.tokenAmount, undefined);
     });
 
     it('should emit purchase event', async () => {
@@ -291,14 +298,16 @@ describe('Tracker', () => {
       const client = asyncRedisFactory();
       const instance = new Tracker(client);
       const totalReceived = '15555555';
+      const tokensSold = '1233';
       const purchases = '1';
       client.set(TOTAL_RECEIVED_KEY, totalReceived);
+      client.set(TOTAL_SOLD_KEY, tokensSold);
       spyOn(instance, 'emit');
 
       await instance.sendFundraiserUpdate();
 
       expect(instance.emit).toHaveBeenCalledWith(
-        TOTAL_RECEIVED_EVENT, { totalReceived, purchases });
+        TOTAL_RECEIVED_EVENT, { totalReceived, purchases, tokensSold });
     });
   });
 
@@ -384,8 +393,14 @@ function asyncRedisFactory() {
   if (!CLIENT_INSTANCE) {
     CLIENT_INSTANCE = redis.createClient();
     const client = CLIENT_INSTANCE;
+    client.mset = (k1, v1, k2, v2, cb) => {
+      client.set(k1, v1, () => {
+        client.set(k2, v2, cb);
+      });
+    };
     client.setAsync = bluebird.promisify(client.set);
     client.getAsync = bluebird.promisify(client.get);
+    client.msetAsync = bluebird.promisify(client.mset);
     client.mgetAsync = bluebird.promisify(client.mget);
     client.hsetAsync = bluebird.promisify(client.hset);
     client.hgetAsync = bluebird.promisify(client.hget);

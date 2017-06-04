@@ -16,4 +16,5 @@ module.exports = {
   TOTAL_RECEIVED_KEY: 'totalReceived',
   PURCHASES_COUNT_KEY: 'purchases',
   EXCHANGE_RATE_KEY: 'exchangeRate',
+  TOTAL_SOLD_KEY: 'tokensSold',
 };

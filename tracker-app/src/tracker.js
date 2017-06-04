@@ -18,6 +18,7 @@ const {
   NEW_PURCHASE_EVENT,
   NEW_EXCHANGE_RATE_EVENT,
   PURCHASES_COUNT_KEY,
+  TOTAL_SOLD_KEY,
  } = require('./constants');
 
 const web3 = new Web3();
@@ -51,16 +52,16 @@ class Tracker extends EventEmitter {
         lastBlockNumber, parseInt(this.startBlock, 10));
 
       const [
-        totalReceived, currentBlock, numPurchases,
+        totalReceived, currentBlock, numPurchases, tokensSold,
       ] = await this.gethClient.fastForward(
         blockNumber,
         this.updateBalance,
         this.address,
         this.topic);
 
-      await this.incTotalReceived(totalReceived);
-      await this.redisClient.setAsync(PURCHASES_COUNT_KEY, numPurchases);
-      await this.redisClient.setAsync(CURRENT_BLOCK_KEY, currentBlock);
+      await this.incTotalReceived(totalReceived, tokensSold);
+      await this.redisClient.msetAsync(
+        PURCHASES_COUNT_KEY, numPurchases, CURRENT_BLOCK_KEY, currentBlock);
       logger.info('Done');
     } catch (error) {
       logger.error(error.message);
@@ -80,11 +81,16 @@ class Tracker extends EventEmitter {
     this.rater.on(DATA_EVENT, this.updateExchangeRate);
   }
 
-  async incTotalReceived(amount, reverted) {
-    const totalReceived = await this.redisClient.getAsync(TOTAL_RECEIVED_KEY);
+  async incTotalReceived(amount, tokensSold, reverted) {
+    const [
+      totalReceived, totalTokensSold,
+      ] = await this.redisClient.mgetAsync(TOTAL_RECEIVED_KEY, TOTAL_SOLD_KEY);
     const newTotal = web3.toBigNumber(amount).plus(totalReceived || 0);
-    await this.redisClient.setAsync(
-      TOTAL_RECEIVED_KEY, newTotal.toString('10'));
+    const newTokensSold = web3.toBigNumber(totalTokensSold || 0)
+      .plus(tokensSold);
+    await this.redisClient.msetAsync(
+      TOTAL_RECEIVED_KEY, newTotal.toString('10'),
+      TOTAL_SOLD_KEY, newTokensSold.toString('10'));
 
     if (reverted) {
       this.redisClient.decr(PURCHASES_COUNT_KEY);
@@ -95,14 +101,21 @@ class Tracker extends EventEmitter {
 
   async getCurrentState() {
     const [
-      totalReceived, currentBlock, exchangeRate, purchases,
+      totalReceived, currentBlock, exchangeRate, purchases, tokensSold,
     ] = await this.redisClient.mgetAsync(
       TOTAL_RECEIVED_KEY,
       CURRENT_BLOCK_KEY,
       EXCHANGE_RATE_KEY,
-      PURCHASES_COUNT_KEY);
+      PURCHASES_COUNT_KEY,
+      TOTAL_SOLD_KEY);
 
-    return { totalReceived, currentBlock, exchangeRate, purchases };
+    return {
+      totalReceived,
+      currentBlock,
+      exchangeRate,
+      purchases,
+      tokensSold,
+    };
   }
 
   async getBalance(address) {
@@ -130,7 +143,8 @@ class Tracker extends EventEmitter {
 
   async addPurchase(purchase, reverted) {
     await this.updateBalance(purchase);
-    await this.incTotalReceived(purchase.ethAmount, reverted);
+    await this.incTotalReceived(
+      purchase.ethAmount, purchase.tokenAmount, reverted);
     this.emit(NEW_PURCHASE_EVENT, formatPurchase(purchase));
   }
 
@@ -153,9 +167,11 @@ class Tracker extends EventEmitter {
   }
 
   async sendFundraiserUpdate() {
-    const [totalReceived, purchases] = await this.redisClient.mgetAsync(
-      TOTAL_RECEIVED_KEY, PURCHASES_COUNT_KEY);
-    this.emit(TOTAL_RECEIVED_EVENT, { totalReceived, purchases });
+    const [
+      totalReceived, purchases, tokensSold,
+    ] = await this.redisClient.mgetAsync(
+      TOTAL_RECEIVED_KEY, PURCHASES_COUNT_KEY, TOTAL_SOLD_KEY);
+    this.emit(TOTAL_RECEIVED_EVENT, { totalReceived, purchases, tokensSold });
   }
 
   handleData(entry) {

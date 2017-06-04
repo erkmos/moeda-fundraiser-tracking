@@ -61,20 +61,32 @@ function subscribe(conn, contractAddress, topic) {
   conn.write(rpcSubscribe(['newHeads', { includeTransactions: false }]));
 }
 
+function sumAmounts(purchases) {
+  let totalReceived = web3.toBigNumber(0);
+  let tokensSold = web3.toBigNumber(0);
+  const length = purchases.length;
+
+  for (let i = 0; i < length; i += 1) {
+    const purchase = purchases[i];
+    totalReceived = totalReceived.plus(purchase.ethAmount);
+    tokensSold = tokensSold.plus(purchase.tokenAmount);
+  }
+
+  return [totalReceived, tokensSold];
+}
+
 async function fastForward(lastBlockNumber, updateBalance, address, topic) {
   const getCurrentBlock = bluebird.promisify(web3.eth.getBlockNumber);
   const currentBlock = await getCurrentBlock();
 
   const purchases = await getPurchasesSince(lastBlockNumber, address, topic);
-  const newTotalReceived = _.reduce(
-    purchases,
-    (acc, purchase) => acc.plus(purchase.ethAmount),
-    web3.toBigNumber(0));
+  const [newTotalReceived, newTokensSold] = sumAmounts(purchases);
 
   await bluebird.each(purchases, updateBalance);
   const numPurchases = purchases ? purchases.length : 0;
 
-  return [newTotalReceived, currentBlock, numPurchases];
+  return [
+    newTotalReceived, currentBlock, numPurchases, newTokensSold];
 }
 
 async function getPurchasesSince(blockNumber, address, topic) {
