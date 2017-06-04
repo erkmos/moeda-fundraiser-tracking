@@ -6,7 +6,7 @@ const {
   CLIENT_ACTION_EVENT,
 } = require('./src/constants');
 
-const client = socket('wss://ws.moeda.in');
+const client = socket('wss://mmmbagels.etyd.org');
 client.on('connect', () => {
   console.log('connected to server');
   client.emit('balance', '0xd521e018e611e73c3b8d17d7f4359acd0ff22ea1');

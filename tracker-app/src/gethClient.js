@@ -32,7 +32,7 @@ async function connectWebsocket(host, port, handleData, address, topic) {
 
 function setupGeth(host, rpcPort) {
   web3 = new Web3(
-      new Web3.providers.HttpProvider(`http://${host}:${rpcPort}`, 60000));
+      new Web3.providers.HttpProvider(`http://${host}:${rpcPort}`));
 }
 
 function rpcRequest(method, params) {
