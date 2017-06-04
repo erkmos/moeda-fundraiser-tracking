@@ -12,7 +12,7 @@ describe('GethClient', () => {
       spyOn(Web3.providers, 'HttpProvider');
       gethClient.setupGeth('host', 'port');
       expect(Web3.providers.HttpProvider).toHaveBeenCalledWith(
-        'http://host:port', 60000);
+        'http://host:port');
     });
   });
 

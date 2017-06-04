@@ -115,8 +115,7 @@ class App {
       config.gethWsPort,
       this.tracker.handleData.bind(this.tracker),
       config.address,
-      config.topic,
-      config.startBlock);
+      config.topic);
 
     await this.tracker.start();
 
