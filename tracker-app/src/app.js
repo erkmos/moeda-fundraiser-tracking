@@ -99,7 +99,8 @@ class App {
       redis.createClient({ host: config.redisHost, port: config.redisPort }),
       gethClient,
       config.address,
-      config.topic);
+      config.topic,
+      config.startBlock);
   }
 
   async run(config) {

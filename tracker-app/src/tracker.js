@@ -48,6 +48,7 @@ class Tracker extends EventEmitter {
       logger.info('Updating entries since last run...');
       const lastBlockNumber = await this.redisClient
         .getAsync(CURRENT_BLOCK_KEY);
+
       const blockNumber = Math.max(
         lastBlockNumber, parseInt(this.startBlock, 10));
 
