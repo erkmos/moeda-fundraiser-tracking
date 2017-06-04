@@ -6,7 +6,7 @@ services:
     build: geth
     image: "geth"
     volumes:
-      - blockchain:/data
+      - gethblockchain:/data
   app:
     build: "tracker-app"
     image: "trackerapp"
