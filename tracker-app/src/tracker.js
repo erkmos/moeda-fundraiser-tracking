@@ -63,7 +63,7 @@ class Tracker extends EventEmitter {
       await this.updateTotalReceived(
         totalReceived, tokensSold);
       await this.redisClient.setAsync(CURRENT_BLOCK_KEY, currentBlock);
-      await this.redisClient.incrByAsync(PURCHASES_COUNT_KEY, numPurchases);
+      await this.redisClient.incrbyAsync(PURCHASES_COUNT_KEY, numPurchases);
       logger.info('Done');
     } catch (error) {
       logger.error(error.message);
