@@ -60,9 +60,10 @@ class Tracker extends EventEmitter {
         this.address,
         this.topic);
 
-      await this.incTotalReceived(totalReceived, tokensSold);
-      await this.redisClient.msetAsync(
-        PURCHASES_COUNT_KEY, numPurchases, CURRENT_BLOCK_KEY, currentBlock);
+      await this.updateTotalReceived(
+        totalReceived, tokensSold);
+      await this.redisClient.setAsync(CURRENT_BLOCK_KEY, currentBlock);
+      await this.redisClient.incrByAsync(PURCHASES_COUNT_KEY, numPurchases);
       logger.info('Done');
     } catch (error) {
       logger.error(error.message);
@@ -82,7 +83,7 @@ class Tracker extends EventEmitter {
     this.rater.on(DATA_EVENT, this.updateExchangeRate);
   }
 
-  async incTotalReceived(amount, tokensSold, reverted) {
+  async updateTotalReceived(amount, tokensSold) {
     const [
       totalReceived, totalTokensSold,
       ] = await this.redisClient.mgetAsync(TOTAL_RECEIVED_KEY, TOTAL_SOLD_KEY);
@@ -92,10 +93,14 @@ class Tracker extends EventEmitter {
     await this.redisClient.msetAsync(
       TOTAL_RECEIVED_KEY, newTotal.toString('10'),
       TOTAL_SOLD_KEY, newTokensSold.toString('10'));
+  }
+
+  async incTotalReceived(amount, tokensSold, reverted) {
+    await this.updateTotalReceived(amount, tokensSold);
 
     if (reverted) {
       this.redisClient.decr(PURCHASES_COUNT_KEY);
-    } else {
+    } else if (web3.toBigNumber(amount).gt(0)) {
       this.redisClient.incr(PURCHASES_COUNT_KEY);
     }
   }
