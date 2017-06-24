@@ -95,14 +95,10 @@ class Tracker extends EventEmitter {
       TOTAL_SOLD_KEY, newTokensSold.toString('10'));
   }
 
-  async incTotalReceived(amount, tokensSold, reverted) {
+  async incTotalReceived(amount, tokensSold) {
     await this.updateTotalReceived(amount, tokensSold);
-
-    if (reverted) {
-      this.redisClient.decr(PURCHASES_COUNT_KEY);
-    } else if (web3.toBigNumber(amount).gt(0)) {
-      this.redisClient.incr(PURCHASES_COUNT_KEY);
-    }
+    const donorCount = await this.redisClient.hlen(BALANCES_KEY);
+    this.redisClient.setAsync(PURCHASES_COUNT_KEY, donorCount);
   }
 
   async getCurrentState() {
