@@ -97,7 +97,7 @@ class Tracker extends EventEmitter {
 
   async incTotalReceived(amount, tokensSold) {
     await this.updateTotalReceived(amount, tokensSold);
-    let donorCount = await this.redisClient.hlen(BALANCES_KEY);
+    let donorCount = await this.redisClient.hlenAsync(BALANCES_KEY);
     if (donorCount === null) {
       donorCount = 0;
     }
