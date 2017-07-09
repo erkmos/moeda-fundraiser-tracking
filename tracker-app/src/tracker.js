@@ -136,8 +136,9 @@ class Tracker extends EventEmitter {
   }
 
   async updateExchangeRate({ centsPerUsd }) {
-    await this.redisClient.setAsync(EXCHANGE_RATE_KEY, centsPerUsd);
-    this.emit(NEW_EXCHANGE_RATE_EVENT, centsPerUsd);
+    await this.redisClient.setAsync(
+      EXCHANGE_RATE_KEY, centsPerUsd.toString('10'));
+    this.emit(NEW_EXCHANGE_RATE_EVENT, centsPerUsd.toString('10'));
   }
 
   async updateBlock(number) {
