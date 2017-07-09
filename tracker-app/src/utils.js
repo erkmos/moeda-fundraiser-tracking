@@ -27,7 +27,15 @@ module.exports = {
   isInvalidAddress(address) {
     return !web3.isAddress(address);
   },
-  decodeLogEntry(logEntry) {
+  decodeRateUpdate(logEntry) {
+    const [centsPerUsd, tokensPerEth] = [
+      web3.toBigNumber(logEntry.data.slice(0, 66)),
+      web3.toBigNumber(`0x${logEntry.data.slice(66, 130)}`),
+    ];
+
+    return { centsPerUsd, tokensPerEth };
+  },
+  decodeDonation(logEntry) {
     if (logEntry.data.length !== 130) {
       throw new Error(`invalid log data ${logEntry.data}`);
     }

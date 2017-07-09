@@ -1,10 +1,9 @@
 const Web3 = require('web3');
 const EventEmitter = require('events');
-const ExchangeRate = require('./exchangeRate');
 const logger = require('./logger');
 const {
-  isHeader, isLog, getBlockNumber, isInvalidAddress, decodeLogEntry,
-  formatPurchase, reversePurchase,
+  isHeader, isLog, getBlockNumber, isInvalidAddress, decodeDonation,
+  formatPurchase, reversePurchase, decodeRateUpdate,
 } = require('./utils');
 const {
   ERROR_EVENT,
@@ -19,6 +18,14 @@ const {
   NEW_EXCHANGE_RATE_EVENT,
   PURCHASES_COUNT_KEY,
   TOTAL_SOLD_KEY,
+  DONATION_TOPIC,
+  RATE_UPDATE_TOPIC,
+  PAUSE_TOPIC,
+  UNPAUSE_TOPIC,
+  FINALISE_TOPIC,
+  SALE_PAUSED_KEY,
+  STATE_CHANGE_EVENT,
+  SALE_FINALISED_KEY,
  } = require('./constants');
 
 const web3 = new Web3();
@@ -29,14 +36,12 @@ function handleRedisError(error) {
 
 class Tracker extends EventEmitter {
   constructor(
-    redisClient, gethClient, address, topic, startBlock) {
+    redisClient, gethClient, address, startBlock) {
     super();
     this.redisClient = redisClient;
     this.gethClient = gethClient;
     this.address = address;
-    this.topic = topic;
     this.startBlock = startBlock;
-    this.rater = new ExchangeRate.Updater();
     this.updateExchangeRate = this.updateExchangeRate.bind(this);
     this.updateBalance = this.updateBalance.bind(this);
 
@@ -53,34 +58,23 @@ class Tracker extends EventEmitter {
         lastBlockNumber, parseInt(this.startBlock, 10));
 
       const [
-        totalReceived, currentBlock, numPurchases, tokensSold,
+        totalReceived, currentBlock, numPurchases, tokensSold, exchangeRate,
       ] = await this.gethClient.fastForward(
         blockNumber,
         this.updateBalance,
-        this.address,
-        this.topic);
+        this.address);
 
       await this.updateTotalReceived(
         totalReceived, tokensSold);
-      await this.redisClient.setAsync(CURRENT_BLOCK_KEY, currentBlock);
+      await this.redisClient.msetAsync(
+        CURRENT_BLOCK_KEY, currentBlock,
+        EXCHANGE_RATE_KEY, exchangeRate.toString('10'));
       await this.redisClient.incrbyAsync(PURCHASES_COUNT_KEY, numPurchases);
       logger.info('Done');
     } catch (error) {
       logger.error(error.message);
       throw error;
     }
-
-    return this.setupExchangeRater();
-  }
-
-  async setupExchangeRater() {
-    // update manually the first time since there is a delay and cache
-    // might be empty (or outdated)
-    const rate = await ExchangeRate.getRate();
-    await this.updateExchangeRate(rate);
-
-    this.rater.start();
-    this.rater.on(DATA_EVENT, this.updateExchangeRate);
   }
 
   async updateTotalReceived(amount, tokensSold) {
@@ -106,13 +100,16 @@ class Tracker extends EventEmitter {
 
   async getCurrentState() {
     const [
-      totalReceived, currentBlock, exchangeRate, purchases, tokensSold,
+      totalReceived, currentBlock, exchangeRate,
+      purchases, tokensSold, isPaused, isFinalised,
     ] = await this.redisClient.mgetAsync(
       TOTAL_RECEIVED_KEY,
       CURRENT_BLOCK_KEY,
       EXCHANGE_RATE_KEY,
       PURCHASES_COUNT_KEY,
-      TOTAL_SOLD_KEY);
+      TOTAL_SOLD_KEY,
+      SALE_PAUSED_KEY,
+      SALE_FINALISED_KEY);
 
     return {
       totalReceived,
@@ -120,6 +117,8 @@ class Tracker extends EventEmitter {
       exchangeRate,
       purchases,
       tokensSold,
+      isPaused,
+      isFinalised,
     };
   }
 
@@ -136,9 +135,9 @@ class Tracker extends EventEmitter {
     }
   }
 
-  async updateExchangeRate(rate) {
-    await this.redisClient.setAsync(EXCHANGE_RATE_KEY, rate);
-    this.emit(NEW_EXCHANGE_RATE_EVENT, rate);
+  async updateExchangeRate({ centsPerUsd }) {
+    await this.redisClient.setAsync(EXCHANGE_RATE_KEY, centsPerUsd);
+    this.emit(NEW_EXCHANGE_RATE_EVENT, centsPerUsd);
   }
 
   async updateBlock(number) {
@@ -153,30 +152,54 @@ class Tracker extends EventEmitter {
     this.emit(NEW_PURCHASE_EVENT, formatPurchase(purchase));
   }
 
-  isSubscribed(data) {
-    return data.result.topics[0] === this.topic;
+  async handleDonation(log) {
+    let purchase = decodeDonation(log);
+    if (log.removed) {
+      purchase = reversePurchase(purchase);
+    }
+    await this.addPurchase(purchase, log.removed);
+    return this.sendFundraiserUpdate();
+  }
+
+  async handleEvent(log) {
+    switch (log.topics[0]) {
+      case DONATION_TOPIC:
+        return this.handleDonation(log);
+      case RATE_UPDATE_TOPIC:
+        return this.updateExchangeRate(decodeRateUpdate(log));
+      case PAUSE_TOPIC:
+        this.emit(STATE_CHANGE_EVENT, { isPaused: true });
+        return this.redisClient.setAsync(SALE_PAUSED_KEY, 1);
+      case UNPAUSE_TOPIC:
+        this.emit(STATE_CHANGE_EVENT, { isPaused: false });
+        return this.redisClient.setAsync(SALE_PAUSED_KEY, 0);
+      case FINALISE_TOPIC:
+        this.emit(STATE_CHANGE_EVENT, { isFinalised: true });
+        return this.redisClient.setAsync(SALE_FINALISED_KEY, 1);
+      default:
+        throw new Error(`unhandled event ${JSON.stringify(log)}`);
+    }
   }
 
   async handleSubscription(data) {
     if (isHeader(data)) {
       const blockNumber = getBlockNumber(data);
       await this.updateBlock(blockNumber);
-    } else if (isLog(data) && this.isSubscribed(data)) {
-      let purchase = decodeLogEntry(data.result);
-      if (data.result.removed) {
-        purchase = reversePurchase(purchase);
-      }
-      await this.addPurchase(purchase, data.result.removed);
-      await this.sendFundraiserUpdate();
+    } else if (isLog(data)) {
+      return this.handleEvent(data.result);
     }
+
+    return undefined;
   }
 
   async sendFundraiserUpdate() {
     const [
-      totalReceived, purchases, tokensSold,
+      totalReceived, purchases, tokensSold, isPaused, isFinalised,
     ] = await this.redisClient.mgetAsync(
-      TOTAL_RECEIVED_KEY, PURCHASES_COUNT_KEY, TOTAL_SOLD_KEY);
-    this.emit(TOTAL_RECEIVED_EVENT, { totalReceived, purchases, tokensSold });
+      TOTAL_RECEIVED_KEY, PURCHASES_COUNT_KEY, TOTAL_SOLD_KEY,
+      SALE_PAUSED_KEY, SALE_FINALISED_KEY);
+    this.emit(TOTAL_RECEIVED_EVENT,
+      { totalReceived, purchases, tokensSold, isPaused, isFinalised });
   }
 
   handleData(entry) {

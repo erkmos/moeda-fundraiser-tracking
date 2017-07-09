@@ -16,6 +16,7 @@ const {
   BLOCK_EVENT,
   NEW_EXCHANGE_RATE_EVENT,
   CLIENT_BALANCE_REQUEST,
+  STATE_CHANGE_EVENT,
 } = require('./constants');
 
 bluebird.promisifyAll(redis.RedisClient.prototype);
@@ -75,6 +76,10 @@ function handleBlockEvent(height) {
   this.emitAction(fundraiserUpdate({ currentBlock: height }));
 }
 
+function handleStateChange(data) {
+  this.emitAction(fundraiserUpdate(data));
+}
+
 function handleTotalReceivedEvent(state) {
   this.emitAction(fundraiserUpdate(state));
 }
@@ -99,7 +104,6 @@ class App {
       redis.createClient({ host: config.redisHost, port: config.redisPort }),
       gethClient,
       config.address,
-      config.topic,
       config.startBlock);
   }
 
@@ -114,8 +118,7 @@ class App {
       config.gethHost,
       config.gethWsPort,
       this.tracker.handleData.bind(this.tracker),
-      config.address,
-      config.topic);
+      config.address);
 
     await this.tracker.start();
 
@@ -129,6 +132,7 @@ class App {
     this.io.on('connection', handleConnection.bind(null, tracker));
     this.io.listen(8787, () => logger.info('Listening on port 3000'));
 
+    tracker.on(STATE_CHANGE_EVENT, handleStateChange.bind(this));
     tracker.on(ERROR_EVENT, handleError.bind(this));
     tracker.on(NEW_PURCHASE_EVENT, handlePurchaseEvent.bind(this));
     tracker.on(BLOCK_EVENT, handleBlockEvent.bind(this));

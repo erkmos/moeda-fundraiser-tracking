@@ -1,20 +1,21 @@
 const WebSocket = require('reconnect-ws');
 const Web3 = require('web3');
 const bluebird = require('bluebird');
-const _ = require('lodash');
 const utils = require('./utils');
 const logger = require('winston');
+const { DONATION_TOPIC } = require('./constants');
+const abi = require('../contract_abi.json');
 
 let web3;
 
-async function connectWebsocket(host, port, handleData, address, topic) {
+async function connectWebsocket(host, port, handleData, address) {
   const client = WebSocket();
   client.on('connect', (conn) => {
     logger.info('Websocket reconnected.');
     conn.on('data', (data) => handleData(JSON.parse(data)));
     // assume that geth was offline and will emit events while
     // syncing for past blocks, i.e. don't run fastforward
-    subscribe(conn, address, topic);
+    subscribe(conn, address);
   });
   client.on('reconnect', () => {
     logger.warn('geth connection lost, reconnecting...');
@@ -48,13 +49,13 @@ function rpcSubscribe(params) {
   return rpcRequest('eth_subscribe', params);
 }
 
-function subscribe(conn, contractAddress, topic) {
-  logger.info('Resubscribing', contractAddress, topic);
+function subscribe(conn, contractAddress) {
+  logger.info('Resubscribing', contractAddress);
   conn.write(rpcSubscribe([
     'logs',
     {
       address: contractAddress,
-      topics: [topic],
+      topics: [], // subscribe to all events
     },
   ]));
 
@@ -75,36 +76,45 @@ function sumAmounts(purchases) {
   return [totalReceived, tokensSold];
 }
 
-async function fastForward(lastBlockNumber, updateBalance, address, topic) {
+async function getCurrentRate(address) {
+  const instance = web3.eth.contract(abi).at(address);
+  const fn = bluebird.promisify(instance.tokensPerEth.call);
+  const tokensPerEth = await fn();
+  return tokensPerEth.div(10000000000000000);
+}
+
+async function fastForward(lastBlockNumber, updateBalance, address) {
   const getCurrentBlock = bluebird.promisify(web3.eth.getBlockNumber);
   const currentBlock = await getCurrentBlock();
   logger.info('Starting sync from block', lastBlockNumber);
 
-  const purchases = await getPurchasesSince(lastBlockNumber, address, topic);
+  const purchases = await getPurchasesSince(lastBlockNumber, address);
   const [newTotalReceived, newTokensSold] = sumAmounts(purchases);
 
   await bluebird.each(purchases, updateBalance);
   const numPurchases = purchases ? purchases.length : 0;
+  const exchangeRate = await getCurrentRate(address);
 
   return [
-    newTotalReceived, currentBlock, numPurchases, newTokensSold];
+    newTotalReceived, currentBlock, numPurchases, newTokensSold, exchangeRate,
+  ];
 }
 
-async function getPurchasesSince(blockNumber, address, topic) {
-  const logs = await getLogsSince(blockNumber, address, topic);
-  const purchases = logs.map(utils.decodeLogEntry);
+async function getPurchasesSince(blockNumber, address) {
+  const logs = await getLogsSince(blockNumber, address);
+  const purchases = logs.map(utils.decodeDonation);
   return purchases;
 }
 
-async function getLogsSince(fromBlock, address, topic) {
-  if (!address || !topic) {
-    throw new Error('getLogsSince: address or topic cannot be undefined');
+async function getLogsSince(fromBlock, address) {
+  if (!address) {
+    throw new Error('getLogsSince: address cannot be undefined');
   }
   const watcher = web3.eth.filter({
     fromBlock: fromBlock || 0,
     toBlock: 'latest',
     address,
-    topics: [topic],
+    topics: [DONATION_TOPIC],
   });
 
   const logs = await new Promise((resolve, reject) => {

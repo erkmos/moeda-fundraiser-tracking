@@ -3,8 +3,7 @@ const logger = require('./src/logger');
 const _ = require('lodash');
 
 function missingEnvVars() {
-  return _.isUndefined(process.env.CONTRACT_ADDRESS) ||
-    _.isUndefined(process.env.CONTRACT_TOPIC);
+  return _.isUndefined(process.env.CONTRACT_ADDRESS);
 }
 
 function getConfig() {
@@ -13,7 +12,6 @@ function getConfig() {
   }
   return {
     address: process.env.CONTRACT_ADDRESS,
-    topic: process.env.CONTRACT_TOPIC,
     redisHost: process.env.REDIS_HOST || '127.0.0.1',
     redisPort: process.env.REDIS_PORT || 6379,
     gethHost: process.env.GETH_HOST || '127.0.0.1',
