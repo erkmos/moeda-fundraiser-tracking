@@ -48,14 +48,25 @@ class Tracker extends EventEmitter {
     redisClient.on(ERROR_EVENT, handleRedisError);
   }
 
+  async getLastBlockNumber() {
+    const lastBlockNumber = await this.redisClient
+        .getAsync(CURRENT_BLOCK_KEY);
+
+    if (lastBlockNumber) {
+      return lastBlockNumber;
+    }
+
+    if (lastBlockNumber === null && this.startBlock === undefined) {
+      return 0;
+    }
+
+    return this.startBlock;
+  }
+
   async start() {
     try {
       logger.info('Updating entries since last run...');
-      const lastBlockNumber = await this.redisClient
-        .getAsync(CURRENT_BLOCK_KEY);
-
-      const blockNumber = Math.max(
-        lastBlockNumber, parseInt(this.startBlock, 10));
+      const blockNumber = await this.getLastBlockNumber();
 
       const [
         totalReceived, currentBlock, numPurchases, tokensSold, exchangeRate,
@@ -117,8 +128,8 @@ class Tracker extends EventEmitter {
       exchangeRate,
       purchases,
       tokensSold,
-      isPaused,
-      isFinalised,
+      isPaused: !!isPaused,
+      isFinalised: !!isFinalised,
     };
   }
 

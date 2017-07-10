@@ -83,16 +83,29 @@ async function getCurrentRate(address) {
   return tokensPerEth.div(10000000000000000);
 }
 
+function count(purchases) {
+  const counts = {};
+  purchases.forEach((purchase) => {
+    if (counts[purchase.address]) {
+      counts[purchase.address] += 1;
+    } else {
+      counts[purchase.address] = 1;
+    }
+  });
+
+  return Object.keys(counts).length;
+}
+
 async function fastForward(lastBlockNumber, updateBalance, address) {
   const getCurrentBlock = bluebird.promisify(web3.eth.getBlockNumber);
   const currentBlock = await getCurrentBlock();
-  logger.info('Starting sync from block', lastBlockNumber);
+  logger.info('Starting sync from block', lastBlockNumber.toString());
 
   const purchases = await getPurchasesSince(lastBlockNumber, address);
   const [newTotalReceived, newTokensSold] = sumAmounts(purchases);
 
   await bluebird.each(purchases, updateBalance);
-  const numPurchases = purchases ? purchases.length : 0;
+  const numPurchases = purchases ? count(purchases) : 0;
   const exchangeRate = await getCurrentRate(address);
 
   return [
