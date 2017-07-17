@@ -6,8 +6,6 @@ const logger = require('./logger');
 const gethClient = require('./gethClient');
 const {
   CLIENT_ACTION_EVENT,
-  CLIENT_BALANCE_ERROR_EVENT,
-  CLIENT_BALANCE_RESULT,
   CLIENT_FUNDRAISER_UPDATE_ACTION,
   CLIENT_NEW_PURCHASE_ACTION,
   TOTAL_RECEIVED_EVENT,
@@ -15,33 +13,11 @@ const {
   NEW_PURCHASE_EVENT,
   BLOCK_EVENT,
   NEW_EXCHANGE_RATE_EVENT,
-  CLIENT_BALANCE_REQUEST,
   STATE_CHANGE_EVENT,
 } = require('./constants');
 
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
-
-async function handleClientAction(tracker, client, action) {
-  const result = { type: null };
-
-  try {
-    switch (action.type) {
-      case CLIENT_BALANCE_REQUEST:
-        result.data = await tracker.getBalance(action.data);
-        result.type = CLIENT_BALANCE_RESULT;
-        break;
-      default:
-        return;
-    }
-  } catch (error) {
-    result.type = CLIENT_BALANCE_ERROR_EVENT;
-    result.data = 'request error';
-  }
-
-
-  client.emit(CLIENT_ACTION_EVENT, result);
-}
 
 async function handleConnection(tracker, client) {
   try {
@@ -49,11 +25,7 @@ async function handleConnection(tracker, client) {
     client.emit(CLIENT_ACTION_EVENT, fundraiserUpdate(state));
   } catch (error) {
     client.emit(ERROR_EVENT, 'failed to get state');
-    return;
   }
-
-  client.on(
-    CLIENT_ACTION_EVENT, handleClientAction.bind(null, tracker, client));
 }
 
 function fundraiserUpdate(data) {
@@ -146,7 +118,6 @@ class App {
 }
 
 module.exports = {
-  handleClientAction,
   handleConnection,
   fundraiserUpdate,
   newPurchase,

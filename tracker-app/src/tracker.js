@@ -42,15 +42,13 @@ class Tracker extends EventEmitter {
     this.gethClient = gethClient;
     this.address = address;
     this.startBlock = startBlock;
-    this.updateExchangeRate = this.updateExchangeRate.bind(this);
     this.updateBalance = this.updateBalance.bind(this);
 
     redisClient.on(ERROR_EVENT, handleRedisError);
   }
 
   async getLastBlockNumber() {
-    const lastBlockNumber = await this.redisClient
-        .getAsync(CURRENT_BLOCK_KEY);
+    const lastBlockNumber = await this.redisClient.getAsync(CURRENT_BLOCK_KEY);
 
     if (lastBlockNumber) {
       return lastBlockNumber;
@@ -208,8 +206,8 @@ class Tracker extends EventEmitter {
     const [
       totalReceived, purchases, tokensSold, isPaused, isFinalised,
     ] = await this.redisClient.mgetAsync(
-      TOTAL_RECEIVED_KEY, PURCHASES_COUNT_KEY, TOTAL_SOLD_KEY,
-      SALE_PAUSED_KEY, SALE_FINALISED_KEY);
+        TOTAL_RECEIVED_KEY, PURCHASES_COUNT_KEY, TOTAL_SOLD_KEY,
+        SALE_PAUSED_KEY, SALE_FINALISED_KEY);
     this.emit(TOTAL_RECEIVED_EVENT,
       { totalReceived, purchases, tokensSold, isPaused, isFinalised });
   }

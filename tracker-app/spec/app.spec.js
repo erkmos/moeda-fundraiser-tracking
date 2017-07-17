@@ -1,11 +1,8 @@
 const app = require('../src/app');
-const io = require('socket.io');
 const logger = require('winston');
 const gethClient = require('../src/gethClient');
 const {
   CLIENT_ACTION_EVENT,
-  CLIENT_BALANCE_ERROR_EVENT,
-  CLIENT_BALANCE_RESULT,
   CLIENT_FUNDRAISER_UPDATE_ACTION,
   CLIENT_NEW_PURCHASE_ACTION,
   TOTAL_RECEIVED_EVENT,
@@ -13,54 +10,9 @@ const {
   NEW_PURCHASE_EVENT,
   BLOCK_EVENT,
   NEW_EXCHANGE_RATE_EVENT,
-  CLIENT_BALANCE_REQUEST
 } = require('../src/constants');
 
 describe('App', () => {
-  describe('handleClientAction', () => {
-    let fakeClient;
-    beforeEach(() => {
-      fakeClient = jasmine.createSpyObj('client', ['emit']);
-    });
-
-    it('should emit new balance on balance action', async () => {
-      const fakeTracker = { getBalance: null };
-      const balance = '12';
-      spyOn(fakeTracker, 'getBalance')
-        .and.returnValue(Promise.resolve(balance));
-      const payload = { type: CLIENT_BALANCE_REQUEST, data: '0x123' };
-
-      await app.handleClientAction(fakeTracker, fakeClient, payload);
-
-      expect(fakeTracker.getBalance).toHaveBeenCalledWith(payload.data);
-      expect(fakeClient.emit).toHaveBeenCalledWith(
-        CLIENT_ACTION_EVENT, { type: CLIENT_BALANCE_RESULT, data: balance });
-    });
-
-    it('should emit generic error on exception', async () => {
-      const fakeTracker = { getBalance: null };
-      const payload = { type: CLIENT_BALANCE_REQUEST, data: '0x123' };
-      spyOn(fakeTracker, 'getBalance')
-        .and.returnValue(Promise.reject(new Error('boogie')));
-
-      try {
-        await app.handleClientAction(fakeTracker, fakeClient, payload);
-      } catch (error) {
-        fail('should not have thrown')
-      }
-
-      expect(fakeClient.emit).toHaveBeenCalledWith(
-        CLIENT_ACTION_EVENT,
-        { type: CLIENT_BALANCE_ERROR_EVENT, data: 'request error' });
-    });
-
-    it('should not emit on unrecognized event', async () => {
-      await app.handleClientAction(null, fakeClient, { type: 'foo' });
-
-      expect(fakeClient.emit).not.toHaveBeenCalled();
-    });
-  });
-
   describe('handleConnection', () => {
     let fakeClient;
     beforeEach(() => {
@@ -77,27 +29,6 @@ describe('App', () => {
       expect(fakeClient.emit).toHaveBeenCalledWith(
         CLIENT_ACTION_EVENT, {
           type: CLIENT_FUNDRAISER_UPDATE_ACTION, data: 'foo' });
-    });
-
-    it('should emit error event on exception', async () => {
-      const fakeTracker = { getCurrentState: null };
-      spyOn(fakeTracker, 'getCurrentState')
-        .and.returnValue(Promise.reject(new Error('foo')));
-
-      await app.handleConnection(fakeTracker, fakeClient);
-      expect(fakeClient.emit).toHaveBeenCalledWith(
-        ERROR_EVENT, 'failed to get state');
-    });
-
-    it('should bind event listener for client actions', async () => {
-      const fakeTracker = { getCurrentState: null };
-      spyOn(fakeTracker, 'getCurrentState')
-        .and.returnValue(Promise.resolve('foo'));
-
-      await app.handleConnection(fakeTracker, fakeClient);
-
-      expect(fakeClient.on).toHaveBeenCalledWith(
-        CLIENT_ACTION_EVENT, jasmine.any(Function));
     });
   });
 

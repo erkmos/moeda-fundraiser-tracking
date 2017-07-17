@@ -2,14 +2,14 @@ const redis = require('redis-mock');
 const nock = require('nock');
 const bluebird = require('bluebird');
 const Tracker = require('../src/tracker');
-const { BASE_URL } = require('../src/exchangeRate');
 const winston = require('winston');
 const URL = require('url').URL;
 const utils = require('../src/utils');
 const logEntry = require('./data/logEntry.json');
 const Web3 = require('web3');
-const web3 = new Web3();
 const blockHeader = require('./data/blockHeader.json');
+
+const web3 = new Web3();
 const {
   ERROR_EVENT,
   CURRENT_BLOCK_KEY,
@@ -23,7 +23,7 @@ const {
   NEW_EXCHANGE_RATE_EVENT,
   PURCHASES_COUNT_KEY,
   TOTAL_SOLD_KEY,
- } = require('../src/constants');
+} = require('../src/constants');
 
 
 let CLIENT_INSTANCE;
