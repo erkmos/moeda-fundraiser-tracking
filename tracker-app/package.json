@@ -8,7 +8,7 @@
   "license": "MIT",
   "scripts": {
     "test": "jasmine",
-    "lint": "eslint 'src/**/*.js' 'test/**/*.js'"
+    "lint": "eslint '*.js' 'src/**/*.js' 'test/**/*.js'"
   },
   "dependencies": {
     "bluebird": "3.5.0",
