@@ -26,7 +26,7 @@ const {
   SALE_PAUSED_KEY,
   STATE_CHANGE_EVENT,
   SALE_FINALISED_KEY,
- } = require('./constants');
+} = require('./constants');
 
 const web3 = new Web3();
 
@@ -69,9 +69,9 @@ class Tracker extends EventEmitter {
       const [
         totalReceived, currentBlock, numPurchases, tokensSold, exchangeRate,
       ] = await this.gethClient.fastForward(
-        blockNumber,
-        this.updateBalance,
-        this.address);
+          blockNumber,
+          this.updateBalance,
+          this.address);
 
       await this.updateTotalReceived(
         totalReceived, tokensSold);
@@ -89,7 +89,7 @@ class Tracker extends EventEmitter {
   async updateTotalReceived(amount, tokensSold) {
     const [
       totalReceived, totalTokensSold,
-      ] = await this.redisClient.mgetAsync(TOTAL_RECEIVED_KEY, TOTAL_SOLD_KEY);
+    ] = await this.redisClient.mgetAsync(TOTAL_RECEIVED_KEY, TOTAL_SOLD_KEY);
     const newTotal = web3.toBigNumber(amount).plus(totalReceived || 0);
     const newTokensSold = web3.toBigNumber(totalTokensSold || 0)
       .plus(tokensSold);
@@ -112,13 +112,13 @@ class Tracker extends EventEmitter {
       totalReceived, currentBlock, exchangeRate,
       purchases, tokensSold, isPaused, isFinalised,
     ] = await this.redisClient.mgetAsync(
-      TOTAL_RECEIVED_KEY,
-      CURRENT_BLOCK_KEY,
-      EXCHANGE_RATE_KEY,
-      PURCHASES_COUNT_KEY,
-      TOTAL_SOLD_KEY,
-      SALE_PAUSED_KEY,
-      SALE_FINALISED_KEY);
+        TOTAL_RECEIVED_KEY,
+        CURRENT_BLOCK_KEY,
+        EXCHANGE_RATE_KEY,
+        PURCHASES_COUNT_KEY,
+        TOTAL_SOLD_KEY,
+        SALE_PAUSED_KEY,
+        SALE_FINALISED_KEY);
 
     return {
       totalReceived,
