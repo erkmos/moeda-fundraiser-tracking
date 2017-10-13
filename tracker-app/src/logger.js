@@ -9,14 +9,31 @@ winston.configure({
       },
       formatter(options) {
         // Return string will be passed to logger.
-        return options.timestamp() + ' ' +
-          options.level.toUpperCase() + ' '
-          + (options.message ? options.message : '') +
-          (options.meta && Object.keys(options.meta).length ? '\n\t' +
-          JSON.stringify(options.meta) : '');
+        return [
+          options.timestamp(),
+          options.level.toUpperCase(),
+          getMessage(options),
+          getMeta(options),
+        ].join(' ');
       },
     }),
   ],
 });
+
+function getMessage({ message }) {
+  if (message !== undefined) {
+    return message;
+  }
+
+  return '';
+}
+
+function getMeta({ meta }) {
+  if (meta !== undefined && Object.keys(meta).length > 0) {
+    return `\n\t${JSON.stringify(meta)}`;
+  }
+
+  return '';
+}
 
 module.exports = winston;

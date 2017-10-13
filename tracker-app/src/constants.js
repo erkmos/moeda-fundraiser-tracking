@@ -1,3 +1,7 @@
+const Web3 = require('web3');
+
+const web3 = new Web3();
+
 module.exports = {
   BLOCK_EVENT: 'block',
   ERROR_EVENT: 'error',
@@ -20,14 +24,9 @@ module.exports = {
   TOTAL_SOLD_KEY: 'tokensSold',
   SALE_PAUSED_KEY: 'isSalePaused',
   SALE_FINALISED_KEY: 'isSaleFinalised',
-  DONATION_TOPIC:
-    '0x0a1930b762a25b24b07de059d1e257f20e78aa16db8c0408da9f67eb0a1bf010',
-  RATE_UPDATE_TOPIC:
-    '0xd8146a2ee5244febd04c1d4a4fda43b447702db87a6d57f44d1c04600248a01e',
-  PAUSE_TOPIC:
-    '0x4b314b34e912fda7f95e7d23e9c8c95f82f0aff1984e4ce592a0b005f9055624',
-  UNPAUSE_TOPIC:
-    '0x730c1faaa977b67dacf1e2451ef54556e04a07d577785ff79f6d31f73502efc9',
-  FINALISE_TOPIC:
-    '0x96dd22533f8268f75c81acd5f9631d8d14e56779dd1567c465f295b7b3a75998',
+  DONATION_TOPIC: web3.sha3('LogDonation(address,uint256,uint256)'),
+  RATE_UPDATE_TOPIC: web3.sha3('LogRateUpdate(uint256,uint256)'),
+  PAUSE_TOPIC: web3.sha3('Pause()'),
+  UNPAUSE_TOPIC: web3.sha3('Unpause()'),
+  FINALISE_TOPIC: web3.sha3('LogFinalisation()'),
 };

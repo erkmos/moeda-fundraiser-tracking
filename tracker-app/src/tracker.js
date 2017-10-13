@@ -69,9 +69,9 @@ class Tracker extends EventEmitter {
       const [
         totalReceived, currentBlock, numPurchases, tokensSold, exchangeRate,
       ] = await this.gethClient.fastForward(
-        blockNumber,
-        this.updateBalance,
-        this.address);
+          blockNumber,
+          this.updateBalance,
+          this.address);
 
       await this.updateTotalReceived(
         totalReceived, tokensSold);
@@ -112,13 +112,13 @@ class Tracker extends EventEmitter {
       totalReceived, currentBlock, exchangeRate,
       purchases, tokensSold, isPaused, isFinalised,
     ] = await this.redisClient.mgetAsync(
-      TOTAL_RECEIVED_KEY,
-      CURRENT_BLOCK_KEY,
-      EXCHANGE_RATE_KEY,
-      PURCHASES_COUNT_KEY,
-      TOTAL_SOLD_KEY,
-      SALE_PAUSED_KEY,
-      SALE_FINALISED_KEY);
+        TOTAL_RECEIVED_KEY,
+        CURRENT_BLOCK_KEY,
+        EXCHANGE_RATE_KEY,
+        PURCHASES_COUNT_KEY,
+        TOTAL_SOLD_KEY,
+        SALE_PAUSED_KEY,
+        SALE_FINALISED_KEY);
 
     return {
       totalReceived,
