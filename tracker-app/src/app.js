@@ -102,7 +102,7 @@ class App {
       this.setupSocket();
     }
     this.io.on('connection', handleConnection.bind(null, tracker));
-    this.io.listen(8787, () => logger.info('Listening on port 3000'));
+    this.io.listen(8787, () => logger.info('Listening on port 8787'));
 
     tracker.on(STATE_CHANGE_EVENT, handleStateChange.bind(this));
     tracker.on(ERROR_EVENT, handleError.bind(this));
