@@ -26,7 +26,7 @@ const {
   SALE_PAUSED_KEY,
   STATE_CHANGE_EVENT,
   SALE_FINALISED_KEY,
- } = require('./constants');
+} = require('./constants');
 
 const web3 = new Web3();
 
@@ -89,7 +89,7 @@ class Tracker extends EventEmitter {
   async updateTotalReceived(amount, tokensSold) {
     const [
       totalReceived, totalTokensSold,
-      ] = await this.redisClient.mgetAsync(TOTAL_RECEIVED_KEY, TOTAL_SOLD_KEY);
+    ] = await this.redisClient.mgetAsync(TOTAL_RECEIVED_KEY, TOTAL_SOLD_KEY);
     const newTotal = web3.toBigNumber(amount).plus(totalReceived || 0);
     const newTokensSold = web3.toBigNumber(totalTokensSold || 0)
       .plus(tokensSold);
